@@ -14,7 +14,7 @@ class CustomerFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'phone' => '+7 9'.fake()->numerify('## ###-##-##'),
+            'phone' => '79'.fake()->unique()->numerify('#########'),
         ];
     }
 }

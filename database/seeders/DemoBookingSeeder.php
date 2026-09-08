@@ -7,7 +7,6 @@ use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\Booking\BookingService;
-use App\Models\Car;
 use App\Models\Customer;
 use App\Models\Service\Service;
 use App\Models\Slot;
@@ -24,6 +23,9 @@ use Illuminate\Support\Collection;
  */
 class DemoBookingSeeder extends Seeder
 {
+    /** @var array<int, array{radius: int, car_type: CarTypeEnum, plate: string|null}> профиль клиента (параметры последней записи) */
+    private array $profiles = [];
+
     private const CUSTOMER_NAMES = [
         'Иван Петров', 'Мария Соколова', 'Алексей Ковалёв', 'Ольга Новикова',
         'Дмитрий Морозов', 'Наталья Волкова', 'Сергей Лебедев', 'Елена Козлова',
@@ -38,6 +40,7 @@ class DemoBookingSeeder extends Seeder
         $mounting = $services->get('Снятие и установка колёс');
         $balancing = $services->get('Балансировка колёс');
 
+        $this->profiles = [];
         $customers = $this->seedCustomers();
 
         $this->seedHistorySlots(); // прошлая неделя: строки сетки, которые генератор уже не трогает
@@ -64,26 +67,31 @@ class DemoBookingSeeder extends Seeder
 
         foreach (self::CUSTOMER_NAMES as $name) {
             do {
-                $phone = '+7 9'.rand(100, 999).' '.rand(100, 999).'-'.rand(10, 99).'-'.rand(10, 99);
+                $phone = '79'.rand(100000000, 999999999); // канон «7XXXXXXXXXX» (11 цифр)
             } while (isset($usedPhones[$phone]));
             $usedPhones[$phone] = true;
 
             $customer = Customer::create(['name' => $name, 'phone' => $phone]);
 
-            $carsCount = rand(1, 2);
-            for ($i = 0; $i < $carsCount; $i++) {
-                Car::create([
-                    'customer_id' => $customer->id,
-                    'plate' => $this->randomPlate(),
-                    'radius' => rand(13, 21),
-                    'car_type' => fake()->randomElement(CarTypeEnum::bookable()),
-                ]);
-            }
-
             $customers->push($customer);
         }
 
-        return Customer::with('cars')->get();
+        return Customer::all();
+    }
+
+    /**
+     * Параметры авто из «последней записи» клиента (cars упразднены, ФТ-18):
+     * первый раз генерируются, дальше клиент пишется с теми же параметрами.
+     *
+     * @return array{radius: int, car_type: CarTypeEnum, plate: string|null}
+     */
+    private function profileFor(Customer $customer): array
+    {
+        return $this->profiles[$customer->id] ??= [
+            'radius' => rand(13, 21),
+            'car_type' => fake()->randomElement(CarTypeEnum::bookable()),
+            'plate' => $this->randomPlate(),
+        ];
     }
 
     /**
@@ -119,7 +127,7 @@ class DemoBookingSeeder extends Seeder
         ?Service $balancing,
     ): void {
         $customer = $customers->random();
-        $car = $customer->cars->random();
+        $profile = $this->profileFor($customer);
 
         $workingHours = range(9, 18);
         $hour = $workingHours[array_rand($workingHours)];
@@ -143,14 +151,14 @@ class DemoBookingSeeder extends Seeder
 
         $booking = Booking::create([
             'customer_id' => $customer->id,
-            'car_id' => $car->id,
             'slot_id' => $slot->id,
             'start_time' => sprintf('%02d:%02d:00', $hour, $minute),
             'status' => $status,
             'source' => $source,
             'cancel_reason' => $status === BookingStatusEnum::Cancelled ? 'Клиент отменил' : null,
-            'radius' => $car->radius,
-            'car_type' => $car->car_type ?? CarTypeEnum::Passenger,
+            'radius' => $profile['radius'],
+            'car_type' => $profile['car_type'],
+            'plate' => $profile['plate'],
             'total_price' => 0, // пересчитается ниже по составу
         ]);
 
@@ -161,7 +169,7 @@ class DemoBookingSeeder extends Seeder
         // Расчёт — единый PricingCalculator (НФ-4), как на сайте и при подтверждении
         $quote = app(PricingCalculator::class)->quote(
             collect($services),
-            new VehicleParams($car->radius, $car->car_type),
+            new VehicleParams($profile['radius'], $profile['car_type']),
             $quantities,
         );
 

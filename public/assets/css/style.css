@@ -6091,3 +6091,26 @@ body.ts-body footer.ts-footer {
   font-size: 12px;
   color: #999;
 }
+
+/* ===== Шаг «Данные»: ошибки формы, кнопка-сабмит (Livewire) — 2026-09-09 ===== */
+.field-error {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #d33;
+}
+button.booking-btn-primary {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ===== Шаг «Подтверждение» и экраны результата (Livewire) — 2026-09-09 ===== */
+button.code-resend {
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.field-success {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #1a7f37;
+}

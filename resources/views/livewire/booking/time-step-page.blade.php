@@ -96,11 +96,7 @@
         </div>
       </div>
       @if ($date !== null && $time !== null)
-        <a
-          class="booking-btn-primary"
-          wire:navigate
-          href="{{ route('booking.services', ['date' => $date, 'time' => $time]) }}"
-        >К выбору услуг</a>
+        <a class="booking-btn-primary" wire:navigate href="{{ $servicesUrl }}">К выбору услуг</a>
       @else
         <span class="booking-btn-primary booking-btn-primary--disabled" aria-disabled="true">К выбору услуг</span>
       @endif

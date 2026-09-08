@@ -1,6 +1,6 @@
 # Схема БД: таблицы, связи, ключевые решения
 
-> Sources: TireSlot db-schema v0.10, 2026-09-09; ФТ v0.14, 2026-09-09; Каркас проекта, 2026-09-08
+> Sources: TireSlot db-schema v0.11, 2026-09-09; ФТ v0.15, 2026-09-09; Каркас проекта, 2026-09-08
 > Raw: [db-schema v0.8](../../raw/domain/2026-09-08-db-schema.md); [ФТ v0.11](../../raw/domain/2026-09-08-functional-requirements.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
 
 ## Overview
@@ -10,16 +10,15 @@
 ## Таблицы
 
 - **users** — сотрудники: name, email (unique), password, role (`admin`/`operator`). Источник `operator_id` записей.
-- **customers** — клиенты: name, phone (unique). Идентификация без регистрации.
-- **cars** — автомобили: customer_id, plate (nullable), radius (R13–R21, nullable), car_type (`passenger`/`crossover`/`suv`/`truck`, nullable). Индекс (customer_id).
+- **customers** — клиенты: name, phone (unique, канон «7XXXXXXXXXX» — `App\Support\Phone`). Идентификация без регистрации. Сущности «автомобиль» нет (ADR 0009): параметры и госномер — снимок записей.
 - **services** — услуги: name, category (`tire`/`storage`/`other`), is_active, base_price (fallback, если правила нет).
 - **complex_services** — готовые комплексы: name, is_active; своей цены нет — в запись попадает состав.
 - **complex_service_item** — состав комплекса: complex_service_id (cascade), service_id (restrict); `unique (complex_service_id, service_id)`.
 - **price_rules** — ценовые правила: service_id, radius (R13–R21), car_type, price (за единицу). `unique (service_id, radius, car_type)`; подбор — [pricing](../domain/pricing.md).
 - **schedule_templates** — шаблон недели: weekday (0–6, unique), open_time/close_time (null = выходной). Исключений на дату нет.
 - **slots** — слоты: date, hour (0–23), is_closed, close_reason, booking_id (nullable — привязка закрытия к записи). `unique (date, hour)`. Генерация планировщиком — [slot-grid](../domain/slot-grid.md).
-- **bookings** — записи: customer_id, car_id (nullable), slot_id, booking_code_id (nullable — код, подтвердивший запись; верификатор отмены; null — запись по звонку), start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, idempotency_key (uuid, unique — защита от двойного сабмита), снимок radius/car_type, total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status), (booking_code_id).
-- **booking_codes** — коды подтверждения: phone, code_hash, used_at. Индекс (phone). Заявка не хранится (передаётся при вводе кода); TTL по created_at + reservation_timeout_min; просроченные неиспользованные удаляет крон.
+- **bookings** — записи: customer_id, slot_id, booking_code_id (nullable — код, подтвердивший запись; верификатор отмены; null — запись по звонку), start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, idempotency_key (uuid, unique), снимок radius/car_type/plate (госномер), total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status), (booking_code_id).
+- **booking_codes** — коды подтверждения: phone (канон), code_hash (sha256 кода + app.key; plaintext не хранится), used_at. Индекс (phone). Заявка не хранится (передаётся при вводе кода); TTL по created_at + reservation_timeout_min; просроченные неиспользованные удаляет крон.
 - **booking_services** — состав записи: booking_id, service_id, price (снимок цены за единицу), quantity (1–4). `unique (booking_id, service_id)`.
 - **settings** — параметры конфигурации (key/value): `reservation_timeout_min`, `cancel_free_before_h`, `min_lead_time_h`, `booking_horizon_days`, `shop_address`, `shop_phone`.
 
@@ -27,7 +26,6 @@
 
 ```
 users ──< bookings (operator_id)
-customers ──< cars ──< bookings (car_id)
 customers ──< bookings
 services ──< price_rules
 services ──< booking_services >── bookings

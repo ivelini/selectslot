@@ -1,8 +1,8 @@
 # TireSlot — схема БД
 
 - **Дата:** 2026-09-08
-- **Версия:** 0.10
-- **Связан с:** `documentations/tz/functional-requirements.md` v0.14
+- **Версия:** 0.11
+- **Связан с:** `documentations/tz/functional-requirements.md` v0.15
 
 Конвенции: Laravel (snake_case, `timestamps` на всех таблицах), цены в копейках (`unsignedInteger`), enum-поля — string-колонки со значениями ниже.
 
@@ -25,18 +25,6 @@
 | id | bigint PK | |
 | name | string | |
 | phone | string unique | идентификация без регистрации |
-
-### cars — автомобили клиента
-
-| Поле | Тип | Примечание |
-|---|---|---|
-| id | bigint PK | |
-| customer_id | FK → customers | |
-| plate | string nullable | госномер необязателен |
-| radius | smallint nullable | R13–R21 |
-| car_type | string nullable | `passenger` / `crossover` / `suv` / `truck` |
-
-Индексы: `(customer_id)`.
 
 ### services — услуги
 
@@ -122,7 +110,6 @@
 |---|---|---|
 | id | bigint PK | |
 | customer_id | FK → customers | |
-| car_id | FK → cars nullable | госномер необязателен |
 | slot_id | FK → slots | слот-группа; дата берётся из слота |
 | start_time | time | время начала внутри слота: виджет — `:00`, админка — любое (12:20) |
 | status | string | `confirmed` / `arrived` / `done` / `cancelled` / `no_show` (запись создаётся только при подтверждении кода) |
@@ -130,6 +117,7 @@
 | cancel_reason | string nullable | |
 | booking_code_id | FK → booking_codes nullable | заявка сайта, подтвердившая запись; верификатор отмены на «Моей записи» (ФТ-14); null — запись из админки по звонку |
 | idempotency_key | uuid nullable unique | защита от двойного сабмита (НФ-1) |
+| plate | string nullable | госномер из заявки (снимок; сущности «автомобиль» нет — параметры и номер хранит запись) |
 | radius | smallint | снимок параметров на момент записи |
 | car_type | string | снимок |
 | total_price | unsignedInteger | снимок цены, копейки; корректируется оператором (ФТ-19) |
@@ -175,7 +163,7 @@
 
 ```
 users ──< bookings (operator_id)
-customers ──< cars ──< bookings (car_id)
+customers ──< bookings
 customers ──< bookings
 services ──< price_rules
 services ──< booking_services >── bookings

@@ -129,4 +129,40 @@ class TimeStepPageTest extends TestCase
             ->assertOk()
             ->assertSee('Выберите дату и время');
     }
+
+    public function test_time_step_carries_selection_through(): void
+    {
+        $this->travelTo('2026-09-09 10:30:00');
+        $this->slot('2026-09-09', 18);
+        $query = http_build_query([
+            'date' => '2026-09-09',
+            'time' => '18:00',
+            'services' => [1],
+            'quantities' => [1 => 4],
+            'radius' => 13,
+            'car_type' => 'passenger',
+        ]);
+
+        $this->get('/?'.$query)
+            ->assertOk()
+            ->assertSee(route('booking.services', [
+                'date' => '2026-09-09',
+                'time' => '18:00',
+                'services' => [1],
+                'quantities' => [1 => 4],
+                'radius' => 13,
+                'car_type' => 'passenger',
+            ]));
+    }
+
+    public function test_time_step_link_without_carry_has_only_date_and_time(): void
+    {
+        $this->travelTo('2026-09-09 10:30:00');
+        $this->slot('2026-09-09', 18);
+
+        $this->get('/?date=2026-09-09&time=18:00')
+            ->assertOk()
+            ->assertSee(route('booking.services', ['date' => '2026-09-09', 'time' => '18:00']))
+            ->assertDontSee('services%5B0%5D');
+    }
 }

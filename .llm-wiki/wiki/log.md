@@ -54,3 +54,15 @@
 ## [2026-09-09] ingest | Живые цены карточек услуг (по радиусу/типу)
 - Источник: ServicesStepPage (единый расчёт каталога → unit-цены карточек), мокап services.html
 - Updated: Публичный сайт (карточки услуг показывают цену за единицу по выбранным параметрам)
+
+## [2026-09-09] ingest | Шаг «Данные» реализован: контакты + запрос SMS-кода
+- Источники: DetailsStepPage, BookingCodeService, SmsSender/LogSmsSender/SendBookingCodeSms, Phone-канон, мокап details.html
+- Updated: Публичный сайт (шаг «Данные»: черновик сессии, issue, SMS через очередь)
+- Updated: Создание записи (запрос кода на шаге данных; отправка через очередь; канон телефона)
+- Updated: Схема БД (customers/booking_codes: канон телефона, code_hash)
+
+## [2026-09-09] ingest | Шаг «Код» и создание записи; cars упразднены (ADR 0009)
+- Источники: CodeStepPage + экраны результата, BookingCreator/verify, миграция drop cars + bookings.plate, сквозной пронос шага 1, ФТ v0.15, db-schema v0.11
+- Updated: Создание записи (подтверждение реализовано: verify, BookingCreator, экраны с flash)
+- Updated: Публичный сайт (шаг «Код», экраны, пронос выбора через смену времени)
+- Updated: Схема БД (cars удалена, bookings.plate; 12 сущностей)

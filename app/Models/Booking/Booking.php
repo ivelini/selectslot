@@ -5,7 +5,6 @@ namespace App\Models\Booking;
 use App\Enums\BookingSourceEnum;
 use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
-use App\Models\Car;
 use App\Models\Customer;
 use App\Models\Slot;
 use App\Models\User;
@@ -23,7 +22,6 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $customer_id
- * @property int|null $car_id
  * @property int $slot_id
  * @property int|null $booking_code_id заявка сайта, подтвердившая запись (верификатор отмены)
  * @property string $start_time
@@ -33,15 +31,16 @@ use Illuminate\Support\Carbon;
  * @property string|null $idempotency_key
  * @property int $radius
  * @property CarTypeEnum $car_type
+ * @property string|null $plate госномер из заявки (снимок)
  * @property int $total_price
  * @property int|null $operator_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'customer_id', 'car_id', 'slot_id', 'booking_code_id', 'start_time', 'status', 'source',
+    'customer_id', 'slot_id', 'booking_code_id', 'start_time', 'status', 'source',
     'cancel_reason', 'idempotency_key',
-    'radius', 'car_type', 'total_price', 'operator_id',
+    'radius', 'car_type', 'plate', 'total_price', 'operator_id',
 ])]
 class Booking extends Model
 {
@@ -52,12 +51,6 @@ class Booking extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
-    }
-
-    /** @return BelongsTo<Car, $this> */
-    public function car(): BelongsTo
-    {
-        return $this->belongsTo(Car::class);
     }
 
     /** @return BelongsTo<Slot, $this> */

@@ -13,6 +13,7 @@ use App\Models\Setting;
 use App\Models\Slot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
@@ -30,6 +31,15 @@ class DatabaseSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(100, Slot::count());
         $this->assertGreaterThanOrEqual(10, Booking::count());
         $this->assertGreaterThan(0, Setting::count());
+    }
+
+    public function test_seed_bookings_carry_parameters_without_cars(): void
+    {
+        $this->seed();
+
+        $this->assertFalse(Schema::hasTable('cars'));
+        $this->assertGreaterThan(0, Booking::whereNotNull('radius')->whereNotNull('car_type')->count());
+        $this->assertGreaterThan(0, Booking::whereNotNull('plate')->count());
     }
 
     public function test_seed_seasonal_complex_contains_four_works(): void

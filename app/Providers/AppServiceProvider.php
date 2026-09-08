@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\SmsSender;
+use App\Services\LogSmsSender;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // SMS: реализация по config('services.sms.driver') — dev-драйвер пишет в лог (см. integrations/)
+        $this->app->bind(SmsSender::class, fn () => app(LogSmsSender::class));
     }
 
     /**

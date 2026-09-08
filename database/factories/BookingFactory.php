@@ -6,7 +6,6 @@ use App\Enums\BookingSourceEnum;
 use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
-use App\Models\Car;
 use App\Models\Customer;
 use App\Models\Slot;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,20 +25,15 @@ class BookingFactory extends Factory
             ->first()
             ?? Slot::create(['date' => now()->addDays(rand(1, 20))->toDateString(), 'hour' => rand(9, 18)]);
 
-        $customer = Customer::factory()->create();
-        $car = Car::factory()->create(['customer_id' => $customer->id]);
-
         return [
-            'customer_id' => $customer->id,
-            'car_id' => $car->id,
+            'customer_id' => Customer::factory(),
             'slot_id' => $slot->id,
             'start_time' => sprintf('%02d:00:00', $slot->hour),
             'status' => BookingStatusEnum::Confirmed,
             'source' => BookingSourceEnum::Site,
-            'radius' => $car->radius,
-            'car_type' => $car->car_type ?? CarTypeEnum::Passenger,
-            'has_runflat' => $car->has_runflat,
-            'has_tpms' => $car->has_tpms,
+            'radius' => fake()->numberBetween(13, 21),
+            'car_type' => fake()->randomElement(CarTypeEnum::bookable()),
+            'plate' => fake()->boolean(70) ? fake()->regexify('[АВЕКМНОРСТУХ][0-9]{3}[АВЕКМНОРСТУХ]{2}[0-9]{2}') : null,
             'total_price' => 60000,
         ];
     }

@@ -1,11 +1,11 @@
 # Публичный сайт записи: маршруты ветки и шаги «Время»/«Услуги»
 
 > Sources: Реализация шагов «Время» и «Услуги», 2026-09-08/09
-> Raw: [Шаг «Время» реализован](../../raw/frontend/2026-09-08-shag-vremya-realizovan.md); [Шаг «Услуги» реализован](../../raw/frontend/2026-09-08-shag-uslugi-realizovan.md); [Шаг «Услуги»: счётчики](../../raw/frontend/2026-09-09-shag-uslugi-kolichestvo.md); [Комплексы услуг](../../raw/frontend/2026-09-09-kompleksy-uslug-realizovany.md)
+> Raw: [Шаг «Время» реализован](../../raw/frontend/2026-09-08-shag-vremya-realizovan.md); [Шаг «Услуги» реализован](../../raw/frontend/2026-09-08-shag-uslugi-realizovan.md); [Шаг «Услуги»: счётчики](../../raw/frontend/2026-09-09-shag-uslugi-kolichestvo.md); [Комплексы услуг](../../raw/frontend/2026-09-09-kompleksy-uslug-realizovany.md); [Шаг «Данные» реализован](../../raw/frontend/2026-09-09-shag-dannye-realizovan.md); [Шаг «Код» и создание записи](../../raw/frontend/2026-09-09-shag-kod-zapisi-realizovan.md)
 
 ## Overview
 
-Живая реализация публичной записи (Livewire 4.4, full-page компоненты через `Route::livewire`) поверх мокапа [.template/](public-site-mockup.md). Ветка записи: 4 маршрута `booking.time` (GET /, шаг 1 «Время»), `booking.services` (шаг 2 «Услуги» — реализован), `booking.details`, `booking.code` (шаги 3–4 — заглушки со степпером). Общий layout `resources/views/layouts/public.blade.php`: шапка/футер из мокапа, ассеты в `public/assets` (копия `.template/assets`), степпер — компонент `<x-booking.steps :active="N">`. «Мои записи»/«Контакты» не выводятся — веток ещё нет; адрес/телефон в шапке статичны из мокапа. Общие утилиты шагов: `App\Support\RussianDate`, `App\Support\Money` (см. ниже).
+Живая реализация публичной записи (Livewire 4.4, full-page компоненты через `Route::livewire`) поверх мокапа [.template/](public-site-mockup.md). Ветка записи: 4 маршрута `booking.time` (GET /, шаг 1 «Время»), `booking.services` (шаг 2 «Услуги»), `booking.details` (шаг 3 «Данные»), `booking.code` (шаг 4 «Подтверждение») — шаги 1–4 реализованы, плюс экраны результата `booking.success` / `booking.unavailable` / `booking.code-expired` (редиректы с flash-пометкой, ADR 0006). Общий layout `resources/views/layouts/public.blade.php`: шапка/футер из мокапа, ассеты в `public/assets` (копия `.template/assets`), степпер — компонент `<x-booking.steps :active="N">`. «Мои записи»/«Контакты» не выводятся — веток ещё нет; адрес/телефон в шапке статичны из мокапа. Общие утилиты шагов: `App\Support\RussianDate`, `App\Support\Money` (см. ниже).
 
 ## Шаг «Время» (TimeStepPage)
 
@@ -29,6 +29,24 @@
 - **Цены:** один расчёт каталога (`PricingCalculator::quote` каталога с qty 1) даёт цену за единицу для **карточек услуг** — карточки показывают актуальную цену по выбранным радиусу/типу (смена параметров пересчитывает карточки живьём), у работ без выбора параметров — «от N ₽», у допработ (0 правил) — фиксированная цена. Сайдбар (строки со счётчиком «− × N +» и суммой) строится из тех же unit-цен × количества; `PricingException` ловится — «Цена недоступна — позвоните в мастерскую», кнопка заблокирована.
 - **«Продолжить»** — ссылка на `booking.details` со всем выбором; «Изменить время» → `booking.time` с date/time (выбор услуг при смене времени сбрасывается — принято).
 - Каталог — активные услуги реального прайса; на карточках базовая цена как «от N ₽» (работы) / точная (доп. работы).
+
+## Шаг «Данные» (DetailsStepPage)
+
+`App\Livewire\Booking\DetailsStepPage`, view `livewire/booking/details-step-page`. Персональные данные в URL не пишутся (ADR 0006): контакты — сессионный черновик `booking_draft`; выбор (время/услуги) — сквозной query (тот же уходит на шаг «Код»). Контракты:
+
+- **Вход:** время обязано оставаться выбираемым (`SlotAvailabilityReader`), иначе → шаг 1; выбор-услуги чистится (для сайдбара-итога через `PricingCalculator`).
+- **submit (ФТ-7):** валидация (имя; телефон по `App\Support\Phone` — канон «7XXXXXXXXXX»; госномер опц.) → слот всё ещё выбираем, иначе «Время недоступно» и код не шлётся → `booking_draft` {name, phone, plate} в сессию → `BookingCodeService::issue` (код 4 цифры, code_hash = sha256(код + app.key), plaintext не хранится) → `SendBookingCodeSms::dispatch` (Job, очередь+ретраи, ФТ-24) → redirect `/booking/code` с query.
+- **SMS:** контракт `App\Contracts\SmsSender`, dev-`LogSmsSender` (код в лог) по `services.sms.driver`; провайдер — отдельная реализация.
+- **Возврат с шага «Код»:** черновик предзаполняет форму. Очистка черновика и создание Customer/записи — шаг 4.
+
+## Шаг «Код» и экраны результата
+
+`App\Livewire\Booking\CodeStepPage` + `BookingSuccessPage`/`BookingUnavailablePage`/`BookingCodeExpiredPage` (view по мокапам code/success/unavailable/code-expired). Контракты:
+
+- **Верификация:** `BookingCodeService::verify(phone, code)` → Valid/Used/Expired/Invalid (TTL = created_at + reservation_timeout_min). **Создание:** `BookingCreator::confirm` — транзакция с `SELECT … FOR UPDATE` слота (закрыт → SlotUnavailableException), Customer firstOrCreate, Booking confirmed со снимком (radius/car_type/plate), серверный пересчёт (цена за единицу × quantity), code.used_at атомарно; использованный код → существующая запись (идемпотентность, НФ-1).
+- **CodeStepPage:** OTP 4 цифры; без черновика → шаг «Данные»; неверный код — ошибка; просроченный → code-expired; слот занят → unavailable; resend с кулдауном 60 с. После успеха черновик очищается, редирект success (flash booking_success_id).
+- **Экраны результата** доступны только по сессионной пометке (id записи в URL нет); «Моя запись»-кнопка на success опущена (ветки нет).
+- **Сквозной пронос:** шаг «Время» несёт services/quantities/radius/car_type в «К выбору услуг» — смена времени сохраняет выбор.
 
 ## Правило доступности — SlotAvailabilityReader
 

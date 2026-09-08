@@ -33,6 +33,15 @@ class TimeStepPage extends Component
     /** Открытый в календаре месяц «Y-m»; состояние просмотра — в URL не пишется. */
     public string $visibleMonth;
 
+    /**
+     * Сквозной выбор услуг из query (services/quantities/radius/car_type): смена времени
+     * не должна терять уже выбранные услуги (мокап unavailable) — параметры проносятся
+     * в ссылку «К выбору услуг».
+     *
+     * @var array<string, mixed>
+     */
+    public array $carry = [];
+
     public function mount(SlotAvailabilityReader $reader): void
     {
         $date = $this->parseDate($this->date);
@@ -46,6 +55,17 @@ class TimeStepPage extends Component
         $this->visibleMonth = $this->date !== null
             ? substr($this->date, 0, 7)
             : CarbonImmutable::now()->format('Y-m');
+
+        $this->carry = $this->carryFromRequest();
+    }
+
+    /** @return array<string, mixed> */
+    private function carryFromRequest(): array
+    {
+        return array_filter(
+            request()->only(['services', 'quantities', 'radius', 'car_type']),
+            fn (mixed $value): bool => $value !== null && $value !== [],
+        );
     }
 
     public function selectDate(string $date, SlotAvailabilityReader $reader): void
@@ -117,6 +137,7 @@ class TimeStepPage extends Component
             'timeSlots' => $this->dayTimeSlots($reader),
             'selectedDayLabel' => $this->selectedDayLabel(),
             'summaryDateLabel' => $this->summaryDateLabel(),
+            'servicesUrl' => route('booking.services', ['date' => $this->date, 'time' => $this->time] + $this->carry),
         ]);
     }
 
