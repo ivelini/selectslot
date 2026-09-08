@@ -8,6 +8,7 @@ use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -36,6 +37,12 @@ class Service extends Model
     public function bookingServices(): HasMany
     {
         return $this->hasMany(BookingService::class);
+    }
+
+    /** @return BelongsToMany<ComplexService, $this> комплексы, в которые входит услуга */
+    public function complexes(): BelongsToMany
+    {
+        return $this->belongsToMany(ComplexService::class, 'complex_service_item');
     }
 
     protected function casts(): array

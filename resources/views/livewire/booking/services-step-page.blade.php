@@ -6,6 +6,30 @@
 
   <div class="booking-row">
     <div class="booking-form">
+      @if (count($complexes) > 0)
+        <div class="booking-blk">
+          <h3 class="booking-blk-title">Готовые комплексы</h3>
+          <div class="complexes-grid">
+            @foreach ($complexes as $complex)
+              <label
+                class="complex-card{{ $complex['state'] === 'full' ? ' complex-card--full' : ($complex['state'] === 'partial' ? ' complex-card--partial' : '') }}"
+                wire:key="complex-{{ $complex['id'] }}"
+              >
+                <input
+                  type="checkbox"
+                  @checked($complex['state'] === 'full')
+                  wire:click="toggleComplex({{ $complex['id'] }})"
+                />
+                <span class="complex-card-text">
+                  <span class="complex-card-name">{{ $complex['name'] }}</span>
+                  <span class="complex-card-note">{{ implode(', ', $complex['service_names']) }} · × 4</span>
+                </span>
+              </label>
+            @endforeach
+          </div>
+        </div>
+      @endif
+
       <div class="booking-blk">
         <h3 class="booking-blk-title">Услуги</h3>
         <div class="services-grid">
@@ -18,7 +42,13 @@
                 wire:click="toggleService({{ $service->id }})"
               />
               <span class="service-checkbox-name">{{ $service->name }}</span>
-              <span class="service-checkbox-price">от {{ \App\Support\Money::format($service->base_price) }}</span>
+              @if (isset($unitPrices[$service->id]))
+                <span class="service-checkbox-price">{{ \App\Support\Money::format($unitPrices[$service->id]) }}</span>
+              @elseif (in_array($service->id, $ruleServiceIds, true))
+                <span class="service-checkbox-price">от {{ \App\Support\Money::format($service->base_price) }}</span>
+              @else
+                <span class="service-checkbox-price">{{ \App\Support\Money::format($service->base_price) }}</span>
+              @endif
             </label>
           @endforeach
         </div>

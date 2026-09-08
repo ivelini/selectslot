@@ -5,6 +5,8 @@ namespace App\Livewire\Booking;
 use App\Enums\CarTypeEnum;
 use App\Enums\WheelRadiusEnum;
 use App\Exceptions\PricingException;
+use App\Models\Service\ComplexService;
+use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
 use App\Services\PricingCalculator;
 use App\Services\SlotAvailabilityReader;
@@ -14,6 +16,7 @@ use App\ValueObjects\VehicleParams;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -90,6 +93,47 @@ class ServicesStepPage extends Component
         }
     }
 
+    /**
+     * Клик по комплексу: состав полон и все его услуги = 4 → снять услуги комплекса;
+     * иначе — привести к комплекту ×4: недостающие добавить, ВСЕ услуги комплекса = 4
+     * (уже выбранные с другим количеством переустанавливаются).
+     */
+    public function toggleComplex(int $complexId): void
+    {
+        $serviceIds = ComplexService::query()
+            ->whereKey($complexId)
+            ->where('is_active', true)
+            ->first()
+            ?->services()
+            ->where('services.is_active', true)
+            ->orderBy('services.id')
+            ->pluck('services.id')
+            ->all() ?? [];
+
+        if ($serviceIds === []) {
+            return;
+        }
+
+        $allPresent = array_diff($serviceIds, $this->serviceIds) === [];
+        $allFour = $allPresent && collect($serviceIds)->every(
+            fn (int $id): bool => ($this->quantities[$id] ?? 0) === self::DEFAULT_QUANTITY,
+        );
+
+        if ($allFour) {
+            $this->serviceIds = array_values(array_diff($this->serviceIds, $serviceIds));
+            foreach ($serviceIds as $serviceId) {
+                unset($this->quantities[$serviceId]);
+            }
+
+            return;
+        }
+
+        $this->serviceIds = array_values(array_unique([...$this->serviceIds, ...$serviceIds]));
+        foreach ($serviceIds as $serviceId) {
+            $this->quantities[$serviceId] = self::DEFAULT_QUANTITY;
+        }
+    }
+
     public function incrementQuantity(int $serviceId): void
     {
         if (! in_array($serviceId, $this->serviceIds, true)) {
@@ -126,13 +170,37 @@ class ServicesStepPage extends Component
     {
         $catalog = Service::query()->where('is_active', true)->orderBy('id')->get(['id', 'name', 'base_price']);
         $selected = $catalog->whereIn('id', $this->serviceIds)->values();
+        $carType = CarTypeEnum::tryFrom((string) $this->carType);
+        $params = $this->radius !== null && $carType !== null
+            ? new VehicleParams($this->radius, $carType)
+            : null;
 
-        [$quote, $pricingError] = $this->resolveQuote($selected, $calculator);
+        // Один расчёт каталога (цена за единицу при выбранных параметрах) кормит и карточки
+        // услуг, и сайдбар; потерянное правило — PricingException — не роняет страницу.
+        $unitPrices = [];
+        $pricingError = false;
+        if ($params !== null) {
+            try {
+                $quote = $calculator->quote($catalog, $params, $this->unitQuantities($catalog));
+                foreach ($quote['lines'] as $line) {
+                    $unitPrices[$line['service']->id] = $line['unit_price'];
+                }
+            } catch (PricingException) {
+                $pricingError = true;
+            }
+        }
+
+        $quote = $params !== null && ! $pricingError && $selected->isNotEmpty()
+            ? $this->summaryFromUnitPrices($selected, $unitPrices)
+            : null;
 
         return view('livewire.booking.services-step-page', [
             'catalog' => $catalog,
             'selectedIds' => $this->serviceIds,
             'quantities' => $this->quantities,
+            'complexes' => $this->complexesData(),
+            'unitPrices' => $unitPrices,
+            'ruleServiceIds' => $this->ruleServiceIds($catalog),
             'radiusOptions' => WheelRadiusEnum::cases(),
             'carTypeOptions' => CarTypeEnum::bookable(),
             'quote' => $quote,
@@ -143,41 +211,81 @@ class ServicesStepPage extends Component
     }
 
     /**
-     * Цены показываются только при полном наборе (услуги + радиус + тип); потерянное
-     * прайс-правило — PricingException — не роняет страницу, а сообщает клиенту.
+     * Активные комплексы с состоянием относительно выбора (в URL не пишутся — состояние
+     * выводится из выбранных услуг). none/partial/full — по вхождению услуг комплекса.
      *
-     * @return array{0: null|array{lines: list<array{service_id: int, name: string, quantity: int, price: string}>, total: string}, 1: bool}
+     * @return list<array{id: int, name: string, state: string, service_names: list<string>}>
      */
-    private function resolveQuote($selected, PricingCalculator $calculator): array
+    private function complexesData(): array
     {
-        $carType = CarTypeEnum::tryFrom((string) $this->carType);
-        if ($selected->isEmpty() || $this->radius === null || $carType === null) {
-            return [null, false];
-        }
+        $complexes = ComplexService::query()
+            ->where('is_active', true)
+            ->with(['services' => fn ($query) => $query->where('services.is_active', true)->orderBy('services.id')])
+            ->orderBy('id')
+            ->get();
 
-        $quantities = [];
+        return $complexes->map(function (ComplexService $complex): array {
+            $serviceIds = $complex->services->pluck('id')->all();
+            $present = array_values(array_intersect($serviceIds, $this->serviceIds));
+
+            $state = match (count($present)) {
+                0 => 'none',
+                count($serviceIds) => 'full',
+                default => 'partial',
+            };
+
+            return [
+                'id' => $complex->id,
+                'name' => $complex->name,
+                'state' => $state,
+                'service_names' => $complex->services->pluck('name')->all(),
+            ];
+        })->all();
+    }
+
+    /**
+     * Расчёт каталога с количеством 1 на услугу — цены за единицу для карточек.
+     *
+     * @return array<int, int> service_id => 1
+     */
+    private function unitQuantities(Collection $catalog): array
+    {
+        return $catalog->pluck('id')->mapWithKeys(fn (int $id): array => [$id => 1])->all();
+    }
+
+    /**
+     * Строки сайдбара из цен за единицу: итог строки = цена × количество.
+     *
+     * @return array{lines: list<array{service_id: int, name: string, quantity: int, price: string}>, total: string}
+     */
+    private function summaryFromUnitPrices(Collection $selected, array $unitPrices): array
+    {
+        $lines = [];
+        $total = 0;
         foreach ($selected as $service) {
-            $quantities[$service->id] = $this->quantities[$service->id] ?? self::DEFAULT_QUANTITY;
+            $quantity = $this->quantities[$service->id] ?? self::DEFAULT_QUANTITY;
+            $linePrice = $unitPrices[$service->id] * $quantity;
+
+            $lines[] = [
+                'service_id' => $service->id,
+                'name' => $service->name,
+                'quantity' => $quantity,
+                'price' => Money::format($linePrice),
+            ];
+            $total += $linePrice;
         }
 
-        try {
-            $quote = $calculator->quote($selected, new VehicleParams($this->radius, $carType), $quantities);
-        } catch (PricingException) {
-            return [null, true];
-        }
+        return ['lines' => $lines, 'total' => Money::format($total)];
+    }
 
-        return [[
-            'lines' => array_map(
-                fn (array $line): array => [
-                    'service_id' => $line['service']->id,
-                    'name' => $line['service']->name,
-                    'quantity' => $line['quantity'],
-                    'price' => Money::format($line['price']),
-                ],
-                $quote['lines'],
-            ),
-            'total' => Money::format($quote['total']),
-        ], false];
+    /** @return list<int> id услуг каталога, у которых есть прайс-правила (цена зависит от параметров) */
+    private function ruleServiceIds(Collection $catalog): array
+    {
+        return PriceRule::query()
+            ->whereIn('service_id', $catalog->pluck('id'))
+            ->distinct()
+            ->pluck('service_id')
+            ->all();
     }
 
     private function continueUrl(): string

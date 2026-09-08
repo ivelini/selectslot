@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\CarTypeEnum;
 use App\Enums\ServiceCategoryEnum;
+use App\Models\Service\ComplexService;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
 use Illuminate\Database\Seeder;
@@ -63,7 +64,23 @@ class CatalogSeeder extends Seeder
     {
         $this->seedPriceListWorks();
         $this->seedExtraWorks();
+        $this->seedComplexes();
         $this->deactivateRemovedServices();
+    }
+
+    /** Готовые комплексы: «Сезонный шиномонтаж» = 4 работы переобувки (клик отмечает их ×4). */
+    private function seedComplexes(): void
+    {
+        $complex = ComplexService::updateOrCreate(['name' => 'Сезонный шиномонтаж'], ['is_active' => true]);
+
+        $serviceIds = Service::whereIn('name', [
+            'Снятие и установка колёс',
+            'Демонтаж колёс',
+            'Монтаж колёс',
+            'Балансировка колёс',
+        ])->pluck('id');
+
+        $complex->services()->sync($serviceIds);
     }
 
     /** Работы прайса: полный куб правил (услуга × радиус × тип) — подбор точным совпадением (ADR 0007). */

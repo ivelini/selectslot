@@ -49,32 +49,45 @@
           <div class="booking-row">
             <div class="booking-form">
               <div class="booking-blk">
+                <h3 class="booking-blk-title">Готовые комплексы</h3>
+                <div class="complexes-grid">
+                  <label class="complex-card complex-card--full">
+                    <input type="checkbox" name="complex" value="seasonal" checked />
+                    <span class="complex-card-text">
+                      <span class="complex-card-name">Сезонный шиномонтаж</span>
+                      <span class="complex-card-note">Снятие и установка колёс, Демонтаж колёс, Монтаж колёс, Балансировка колёс · × 4</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="booking-blk">
                 <h3 class="booking-blk-title">Услуги</h3>
                 <div class="services-grid">
                   <label class="service-checkbox">
                     <input type="checkbox" name="service" value="mounting" checked />
                     <span class="service-checkbox-name">Снятие и установка колёс</span>
-                    <span class="service-checkbox-price">от 150 ₽</span>
+                    <span class="service-checkbox-price">300 ₽</span>
                   </label>
                   <label class="service-checkbox">
                     <input type="checkbox" name="service" value="balancing" checked />
                     <span class="service-checkbox-name">Балансировка колёс</span>
-                    <span class="service-checkbox-price">от 140 ₽</span>
+                    <span class="service-checkbox-price">300 ₽</span>
                   </label>
                   <label class="service-checkbox">
-                    <input type="checkbox" name="service" value="demount" />
+                    <input type="checkbox" name="service" value="demount" checked />
                     <span class="service-checkbox-name">Демонтаж колёс</span>
-                    <span class="service-checkbox-price">от 120 ₽</span>
+                    <span class="service-checkbox-price">200 ₽</span>
                   </label>
                   <label class="service-checkbox">
-                    <input type="checkbox" name="service" value="mount" />
+                    <input type="checkbox" name="service" value="mount" checked />
                     <span class="service-checkbox-name">Монтаж колёс</span>
-                    <span class="service-checkbox-price">от 120 ₽</span>
+                    <span class="service-checkbox-price">200 ₽</span>
                   </label>
                   <label class="service-checkbox">
                     <input type="checkbox" name="service" value="complex" />
                     <span class="service-checkbox-name">Комплекс работ (1 колесо)</span>
-                    <span class="service-checkbox-price">от 530 ₽</span>
+                    <span class="service-checkbox-price">1 000 ₽</span>
                   </label>
                   <label class="service-checkbox">
                     <input type="checkbox" name="service" value="valve" />
@@ -195,6 +208,24 @@
                   <button class="qty-btn" type="button">+</button>
                 </div>
                 <div class="booking-summary-row">
+                  <span class="booking-summary-label">Демонтаж колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">800 ₽</span>
+                </div>
+                <div class="qty-control">
+                  <button class="qty-btn" type="button">−</button>
+                  <span class="qty-value">× 4</span>
+                  <button class="qty-btn" type="button">+</button>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Монтаж колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">800 ₽</span>
+                </div>
+                <div class="qty-control">
+                  <button class="qty-btn" type="button">−</button>
+                  <span class="qty-value">× 4</span>
+                  <button class="qty-btn" type="button">+</button>
+                </div>
+                <div class="booking-summary-row">
                   <span class="booking-summary-label">Балансировка колёс</span>
                   <span class="booking-summary-value booking-summary-value--price">1 200 ₽</span>
                 </div>
@@ -206,7 +237,7 @@
               </div>
               <div class="booking-summary-total">
                 <span>Итого</span>
-                <span class="booking-summary-total-price">2 400 ₽</span>
+                <span class="booking-summary-total-price">4 000 ₽</span>
               </div>
               <a class="booking-btn-primary" href="details.html">Продолжить</a>
               <a class="booking-summary-link" href="../index.html">Изменить время</a>

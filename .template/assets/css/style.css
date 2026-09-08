@@ -6039,3 +6039,46 @@ body.ts-body footer.ts-footer {
   font-size: 13px;
   color: var(--color-text-dark);
 }
+
+/* ===== Шаг «Услуги»: готовые комплексы — 2026-09-09 ===== */
+.complexes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.complex-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: var(--color-white);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.complex-card:hover {
+  border-color: var(--color-red);
+}
+.complex-card--full {
+  border-color: var(--color-red);
+  background: #fdf4f4;
+}
+.complex-card--partial {
+  border-style: dashed;
+}
+.complex-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.complex-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+.complex-card-note {
+  font-size: 12px;
+  color: #999;
+}

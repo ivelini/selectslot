@@ -6,6 +6,7 @@ use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\ScheduleTemplate;
+use App\Models\Service\ComplexService;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
 use App\Models\Setting;
@@ -29,6 +30,18 @@ class DatabaseSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(100, Slot::count());
         $this->assertGreaterThanOrEqual(10, Booking::count());
         $this->assertGreaterThan(0, Setting::count());
+    }
+
+    public function test_seed_seasonal_complex_contains_four_works(): void
+    {
+        $this->seed();
+
+        $complex = ComplexService::where('name', 'Сезонный шиномонтаж')->firstOrFail();
+        $this->assertTrue($complex->is_active);
+        $this->assertSame(
+            ['Снятие и установка колёс', 'Демонтаж колёс', 'Монтаж колёс', 'Балансировка колёс'],
+            $complex->services()->orderBy('services.id')->pluck('name')->all(),
+        );
     }
 
     public function test_seed_price_cube_by_real_price_list(): void

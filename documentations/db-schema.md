@@ -1,8 +1,8 @@
 # TireSlot — схема БД
 
 - **Дата:** 2026-09-08
-- **Версия:** 0.9
-- **Связан с:** `documentations/tz/functional-requirements.md` v0.13
+- **Версия:** 0.10
+- **Связан с:** `documentations/tz/functional-requirements.md` v0.14
 
 Конвенции: Laravel (snake_case, `timestamps` на всех таблицах), цены в копейках (`unsignedInteger`), enum-поля — string-колонки со значениями ниже.
 
@@ -47,6 +47,26 @@
 | category | string | `tire` (шиномонтаж) / `storage` (хранение) / `other` |
 | is_active | boolean default true | неактивные не участвуют в записи |
 | base_price | unsignedInteger | базовая цена, копейки; fallback, если правила нет |
+
+### complex_services — готовые комплексы услуг
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| name | string | например «Сезонный шиномонтаж» |
+| is_active | boolean default true | |
+
+Своей цены у комплекса нет: в запись попадает состав (услуги с количествами), не комплекс.
+
+### complex_service_item — состав комплекса (многие-ко-многим)
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| complex_service_id | FK → complex_services | каскад при удалении комплекса |
+| service_id | FK → services | restrict: услугу деактивируют, не удаляют |
+
+`unique (complex_service_id, service_id)`.
 
 ### price_rules — ценовые правила
 
