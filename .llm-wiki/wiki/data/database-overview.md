@@ -1,6 +1,6 @@
 # Схема БД: таблицы, связи, ключевые решения
 
-> Sources: TireSlot db-schema v0.8, 2026-09-08; ФТ v0.11, 2026-09-08; Каркас проекта, 2026-09-08
+> Sources: TireSlot db-schema v0.9, 2026-09-09; ФТ v0.13, 2026-09-09; Каркас проекта, 2026-09-08
 > Raw: [db-schema v0.8](../../raw/domain/2026-09-08-db-schema.md); [ФТ v0.11](../../raw/domain/2026-09-08-functional-requirements.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
 
 ## Overview
@@ -11,14 +11,14 @@
 
 - **users** — сотрудники: name, email (unique), password, role (`admin`/`operator`). Источник `operator_id` записей.
 - **customers** — клиенты: name, phone (unique). Идентификация без регистрации.
-- **cars** — автомобили: customer_id, plate (nullable), radius (R13–R22, nullable), car_type (`passenger`/`crossover`/`suv`/`truck`, nullable), has_runflat, has_tpms. Индекс (customer_id).
+- **cars** — автомобили: customer_id, plate (nullable), radius (R13–R21, nullable), car_type (`passenger`/`crossover`/`suv`/`truck`, nullable). Индекс (customer_id).
 - **services** — услуги: name, category (`tire`/`storage`/`other`), is_active, base_price (fallback, если правила нет).
-- **price_rules** — ценовые правила: service_id, radius, car_type, has_runflat, has_tpms, price. `unique (service_id, radius, car_type, has_runflat, has_tpms)`; подбор — [pricing](../domain/pricing.md).
+- **price_rules** — ценовые правила: service_id, radius (R13–R21), car_type, price (за единицу). `unique (service_id, radius, car_type)`; подбор — [pricing](../domain/pricing.md).
 - **schedule_templates** — шаблон недели: weekday (0–6, unique), open_time/close_time (null = выходной). Исключений на дату нет.
 - **slots** — слоты: date, hour (0–23), is_closed, close_reason, booking_id (nullable — привязка закрытия к записи). `unique (date, hour)`. Генерация планировщиком — [slot-grid](../domain/slot-grid.md).
-- **bookings** — записи: customer_id, car_id (nullable), slot_id, booking_code_id (nullable — код, подтвердивший запись; верификатор отмены; null — запись по звонку), start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, idempotency_key (uuid, unique — защита от двойного сабмита), снимок radius/car_type/has_runflat/has_tpms, total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status), (booking_code_id).
+- **bookings** — записи: customer_id, car_id (nullable), slot_id, booking_code_id (nullable — код, подтвердивший запись; верификатор отмены; null — запись по звонку), start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, idempotency_key (uuid, unique — защита от двойного сабмита), снимок radius/car_type, total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status), (booking_code_id).
 - **booking_codes** — коды подтверждения: phone, code_hash, used_at. Индекс (phone). Заявка не хранится (передаётся при вводе кода); TTL по created_at + reservation_timeout_min; просроченные неиспользованные удаляет крон.
-- **booking_services** — состав записи: booking_id, service_id, price (на момент записи). `unique (booking_id, service_id)`.
+- **booking_services** — состав записи: booking_id, service_id, price (снимок цены за единицу), quantity (1–4). `unique (booking_id, service_id)`.
 - **settings** — параметры конфигурации (key/value): `reservation_timeout_min`, `cancel_free_before_h`, `min_lead_time_h`, `booking_horizon_days`, `shop_address`, `shop_phone`.
 
 ## Связи
@@ -47,7 +47,7 @@ schedule_templates — источник генерации slots
 
 ## Реализация и демо-данные (2026-09-08)
 
-Схема реализована миграциями и моделями (Laravel 13: атрибуты `#[Fillable]`, `casts()`); enum-классы в `app/Enums/`. Сиды (DatabaseSeeder) наполняют демо-окружение: пользователи `admin@tireslot.local` / `operator@tireslot.local` (пароль `password`), 8 услуг и 36 прайс-правил (демо-цены из мокапа), шаблон Пн–Сб 9:00–19:00, слоты на 30 дней с закрытыми обедами 13:00, записи на окно −7…+6 дней от today. Копейки — `unsignedInteger`; производитель работ: `SlotGridGenerator` (см. [slot-grid](../domain/slot-grid.md)); демо-подбор цены в сиде — временная копия, уйдёт в PricingService.
+Схема реализована миграциями и моделями (Laravel 13: атрибуты `#[Fillable]`, `casts()`); enum-классы в `app/Enums/` (+ `WheelRadiusEnum` R13–R21, `CarTypeEnum::bookable()`). Сиды (DatabaseSeeder) наполняют демо-окружение: пользователи `admin@tireslot.local` / `operator@tireslot.local` (пароль `password`), 10 услуг реального прайса (5 работ с полным кубом 135 правил: R13–21 × 3 типа; 5 допработ без правил), шаблон — все дни 9:00–19:00 (воскресенье рабочее), горизонт сида 60 дней (fallback 30), записи на окно −7…+6 дней от today (расчёт через PricingCalculator). Копейки — `unsignedInteger`; производитель работ: `SlotGridGenerator` (см. [slot-grid](../domain/slot-grid.md)); расчёт цены — `PricingCalculator` (см. [Цены](../domain/pricing.md)).
 
 ## See Also
 

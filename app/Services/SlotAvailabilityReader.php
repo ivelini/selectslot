@@ -51,6 +51,17 @@ class SlotAvailabilityReader
      * @return list<array{hour: int, is_closed: bool}>
      */
     /**
+     * Можно ли записаться на час дня: слот существует, открыт и в границах окна.
+     * Единая проверка для шагов «Время» и «Услуги» (время из query обязано оставаться выбираемым).
+     */
+    public function isSelectableHour(CarbonImmutable $date, int $hour): bool
+    {
+        return collect($this->daySlots($date))->contains(
+            fn (array $slot): bool => $slot['hour'] === $hour && ! $slot['is_closed'],
+        );
+    }
+
+    /**
      * Входит ли дата в окно записи: не прошлая и в пределах горизонта.
      */
     public function isWithinBookingWindow(CarbonImmutable $date): bool

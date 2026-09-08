@@ -6018,3 +6018,34 @@ body.ts-body footer.ts-footer {
 .booking-btn-primary--disabled:hover {
   background: var(--color-bg-soft);
 }
+
+/* ===== Шаг «Услуги»: счётчик количества (Livewire) — 2026-09-09 ===== */
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 12px;
+  padding-left: 20px;
+}
+.qty-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-white);
+  color: var(--color-text-dark);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.qty-btn:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+.qty-value {
+  min-width: 42px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-dark);
+}

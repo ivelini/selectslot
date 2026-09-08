@@ -19,8 +19,6 @@ class CarFactory extends Factory
             'plate' => fake()->regexify('[АВЕКМНОРСТУХ][0-9]{3}[АВЕКМНОРСТУХ]{2}[0-9]{2}'),
             'radius' => fake()->numberBetween(13, 18),
             'car_type' => fake()->randomElement(CarTypeEnum::cases()),
-            'has_runflat' => fake()->boolean(15),
-            'has_tpms' => fake()->boolean(20),
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Livewire\Booking;
 
 use App\Services\SlotAvailabilityReader;
+use App\Support\RussianDate;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\View\View;
@@ -22,24 +23,6 @@ class TimeStepPage extends Component
     private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
 
     private const TIME_PATTERN = '/^(?:[01]\d|2[0-3]):00$/';
-
-    private const MONTHS_NOMINATIVE = [
-        1 => 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-    ];
-
-    private const MONTHS_GENITIVE = [
-        1 => 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-    ];
-
-    private const WEEKDAYS = [
-        1 => 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье',
-    ];
-
-    private const WEEKDAYS_SHORT = [
-        1 => 'пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс',
-    ];
 
     #[Url]
     public ?string $date = null;
@@ -90,7 +73,7 @@ class TimeStepPage extends Component
         }
 
         $hour = (int) substr($time, 0, 2);
-        if (! $this->isHourSelectable(CarbonImmutable::parse($this->date), $hour, $reader)) {
+        if (! $reader->isSelectableHour(CarbonImmutable::parse($this->date), $hour)) {
             return;
         }
 
@@ -128,7 +111,7 @@ class TimeStepPage extends Component
 
         return view('livewire.booking.time-step-page', [
             'calendar' => $this->calendarData($month, $reader),
-            'monthTitle' => self::MONTHS_NOMINATIVE[$month->month].' '.$month->year,
+            'monthTitle' => RussianDate::monthTitle($month),
             'prevMonthEnabled' => $this->visibleMonth > $todayMonth,
             'nextMonthEnabled' => $reader->isWithinBookingWindow($month->addMonthNoOverflow()),
             'timeSlots' => $this->dayTimeSlots($reader),
@@ -204,9 +187,7 @@ class TimeStepPage extends Component
             return null;
         }
 
-        $date = CarbonImmutable::parse($this->date);
-
-        return sprintf('%d %s, %s', $date->day, self::MONTHS_GENITIVE[$date->month], self::WEEKDAYS[$date->isoWeekday()]);
+        return RussianDate::dayWithWeekday(CarbonImmutable::parse($this->date));
     }
 
     private function summaryDateLabel(): ?string
@@ -215,9 +196,7 @@ class TimeStepPage extends Component
             return null;
         }
 
-        $date = CarbonImmutable::parse($this->date);
-
-        return sprintf('%d %s (%s)', $date->day, self::MONTHS_GENITIVE[$date->month], self::WEEKDAYS_SHORT[$date->isoWeekday()]);
+        return RussianDate::dayShort(CarbonImmutable::parse($this->date));
     }
 
     /** Строгое чтение «Y-m-d»: мусор и переполнение дат (9999-99-99) отсекаются round-trip'ом. */
@@ -244,14 +223,7 @@ class TimeStepPage extends Component
 
         $hour = (int) substr($value, 0, 2);
 
-        return $this->isHourSelectable($date, $hour, $reader) ? $value : null;
-    }
-
-    private function isHourSelectable(CarbonImmutable $date, int $hour, SlotAvailabilityReader $reader): bool
-    {
-        return collect($reader->daySlots($date))->contains(
-            fn (array $slot): bool => $slot['hour'] === $hour && ! $slot['is_closed'],
-        );
+        return $reader->isSelectableHour($date, $hour) ? $value : null;
     }
 
     private function visibleMonthDate(): CarbonImmutable

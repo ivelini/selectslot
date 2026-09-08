@@ -9,17 +9,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * Прайс-правило: цена услуги за единицу (1 колесо/шт) для комбинации (услуга, радиус, тип).
+ *
  * @property int $id
  * @property int $service_id
  * @property int $radius
  * @property CarTypeEnum $car_type
- * @property bool $has_runflat
- * @property bool $has_tpms
  * @property int $price
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['service_id', 'radius', 'car_type', 'has_runflat', 'has_tpms', 'price'])]
+#[Fillable(['service_id', 'radius', 'car_type', 'price'])]
 class PriceRule extends Model
 {
     /** @return BelongsTo<Service, $this> */
@@ -32,8 +32,6 @@ class PriceRule extends Model
     {
         return [
             'car_type' => CarTypeEnum::class,
-            'has_runflat' => 'boolean',
-            'has_tpms' => 'boolean',
         ];
     }
 }

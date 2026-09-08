@@ -1,11 +1,11 @@
-# Публичный сайт записи: маршруты ветки и шаг «Время»
+# Публичный сайт записи: маршруты ветки и шаги «Время»/«Услуги»
 
-> Sources: Реализация шага «Время» и каркаса маршрутов, 2026-09-08
-> Raw: [Шаг «Время» реализован](../../raw/frontend/2026-09-08-shag-vremya-realizovan.md)
+> Sources: Реализация шагов «Время» и «Услуги», 2026-09-08/09
+> Raw: [Шаг «Время» реализован](../../raw/frontend/2026-09-08-shag-vremya-realizovan.md); [Шаг «Услуги» реализован](../../raw/frontend/2026-09-08-shag-uslugi-realizovan.md); [Шаг «Услуги»: счётчики](../../raw/frontend/2026-09-09-shag-uslugi-kolichestvo.md)
 
 ## Overview
 
-Живая реализация публичной записи (Livewire 4.4, full-page компоненты через `Route::livewire`) поверх мокапа [.template/](public-site-mockup.md). Ветка записи: 4 маршрута `booking.time` (GET /, шаг 1 «Время»), `booking.services`, `booking.details`, `booking.code` (шаги 2–4 — заглушки со степпером, механика отдельными планами). Общий layout `resources/views/layouts/public.blade.php`: шапка/футер из мокапа, ассеты в `public/assets` (копия `.template/assets`), степпер — компонент `<x-booking.steps :active="N">`. «Мои записи»/«Контакты» не выводятся — веток ещё нет; адрес/телефон в шапке статичны из мокапа.
+Живая реализация публичной записи (Livewire 4.4, full-page компоненты через `Route::livewire`) поверх мокапа [.template/](public-site-mockup.md). Ветка записи: 4 маршрута `booking.time` (GET /, шаг 1 «Время»), `booking.services` (шаг 2 «Услуги» — реализован), `booking.details`, `booking.code` (шаги 3–4 — заглушки со степпером). Общий layout `resources/views/layouts/public.blade.php`: шапка/футер из мокапа, ассеты в `public/assets` (копия `.template/assets`), степпер — компонент `<x-booking.steps :active="N">`. «Мои записи»/«Контакты» не выводятся — веток ещё нет; адрес/телефон в шапке статичны из мокапа. Общие утилиты шагов: `App\Support\RussianDate`, `App\Support\Money` (см. ниже).
 
 ## Шаг «Время» (TimeStepPage)
 
@@ -16,16 +16,30 @@
 - День календаря кликабелен ⇐ есть открытый слот в лимитах (карта читателя); смена дня сбрасывает время; листание месяцев в окне [месяц(today) … горизонт].
 - Часы дня: прошедшие не показываются, закрытые (`is_closed`) — busy-чипами (ФТ-6). Шаблон недели (`schedule_templates`) сайт не читает: состояние дня — только по слотам.
 - Кнопка «К выбору услуг» — ссылка на `booking.services` с date/time, только при выбранных дате+времени (иначе `booking-btn-primary--disabled`, CSS-дополнение датированной секцией в `public/assets/css/style.css`).
-- Русские названия месяцев/дней — массивы в классе (Carbon-локализация не подключена).
+- Русские названия месяцев/дней — утилита `App\Support\RussianDate` (Carbon-локализация не подключена).
+
+## Шаг «Услуги» (ServicesStepPage)
+
+`App\Livewire\Booking\ServicesStepPage`, view `livewire/booking/services-step-page`. Выбор зеркалится в query: `?services[]=&quantities[id]=&radius=R13..R21&car_type=` (F5/«назад», ADR 0006). Контракты:
+
+- **Вход:** date/time обязаны оставаться выбираемыми (`SlotAvailabilityReader::isSelectableHour`, общий для шагов 1–2) — мусор/прошлое/закрытый слот → redirect на `booking.time`. Невалидные значения отбрасываются: несуществующие/неактивные услуги (вместе со своими количествами), радиус вне R13–R21, car_type-мусор; количества нормализуются к 1–4.
+- **Количество:** цена в прайсе — за единицу (1 колесо/шт); у выбранной услуги счётчик 1–4 (дефолт 4 — сезонный комплект), `incrementQuantity`/`decrementQuantity` держат границы; итог строки = цена × количество.
+- **Параметры:** радиус и тип обязательны к переходу («не знаю» нет, ФТ-4 v0.13); опций RunFlat/TPMS на странице нет (это доп. работы каталога, см. [Цены](../domain/pricing.md)); «Грузовик» сайт не предлагает — `CarTypeEnum::bookable()` (грузовые авто — по звонку, ФТ-18).
+- **Цены:** при полном наборе (≥1 услуга ∧ радиус ∧ тип) — `PricingCalculator::quote(услуги, params, quantities)`; цены/итог только при полноте; `PricingException` (нет прайс-правила) ловится — «Цена недоступна — позвоните в мастерскую», кнопка заблокирована. Сайдбар: строки услуг со счётчиком «− × N +» и суммой строки.
+- **«Продолжить»** — ссылка на `booking.details` со всем выбором; «Изменить время» → `booking.time` с date/time (выбор услуг при смене времени сбрасывается — принято).
+- Каталог — активные услуги реального прайса; на карточках базовая цена как «от N ₽» (работы) / точная (доп. работы).
 
 ## Правило доступности — SlotAvailabilityReader
 
-Единый источник правила для показа сетки (НФ-4): `App\Services\SlotAvailabilityReader` — `daysWithAvailability(from, to)` (карта «дата => есть открытый слот» по диапазону), `daySlots(date)` (строки дня от первого доступного часа), `isWithinBookingWindow(date)`. Границы: слот не закрыт; для today первый час — начало ≥ now + `min_lead_time_h` (округление вверх до часа: 10:30 + 1 ч → 12:00); горизонт `booking_horizon_days` (30: today..today+29). Настройки — `Setting::find(key)?->value ?? default`; сравнения дат — только `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату). Подтверждение кода (ФТ-8) должно использовать то же правило с блокировкой строки.
+Единый источник правила для показа сетки (НФ-4): `App\Services\SlotAvailabilityReader` — `daysWithAvailability(from, to)` (карта «дата => есть открытый слот» по диапазону), `daySlots(date)` (строки дня от первого доступного часа), `isWithinBookingWindow(date)`, `isSelectableHour(date, hour)`. Границы: слот не закрыт; для today первый час — начало ≥ now + `min_lead_time_h` (округление вверх до часа: 10:30 + 1 ч → 12:00); горизонт `booking_horizon_days` (30: today..today+29). Настройки — `Setting::find(key)?->value ?? default`; сравнения дат — только `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату). Подтверждение кода (ФТ-8) должно использовать то же правило с блокировкой строки.
 
 ## Тестирование
 
 - `tests/Unit/Services/SlotAvailabilityReaderTest.php` — границы (равенство now+min_lead доступно), скрытие прошедших, busy-закрытые, горизонт, «день доступен ⇐ открытый слот».
-- `tests/Feature/Livewire/Booking/TimeStepPageTest.php` — пустая сетка при входе, восстановление из query, сброс невалидных date/time, ссылка на следующий шаг, закрытый час не выбирается, GET / отдаёт шаг. Query-параметры симулируются `Livewire::withQueryParams([...])->test(...)`; время — `travelTo` (сброс `travelBack()` в tearDown).
+- `tests/Feature/Livewire/Booking/TimeStepPageTest.php` — пустая сетка при входе, восстановление из query, сброс невалидных date/time, ссылка на следующий шаг, закрытый час не выбирается, GET / отдаёт шаг.
+- `tests/Unit/Services/PricingCalculatorTest.php` — цена за единицу × количество, подбор по радиусу/типу, 0 правил = фикс. цена, `PricingException` при отсутствии комбинации, сумма набора с разными количествами.
+- `tests/Feature/Livewire/Booking/ServicesStepPageTest.php` — redirect при недоступном времени, восстановление выбора с количествами, сброс мусора/осиротевших количеств, полнота набора, живой пересчёт (радиус + счётчик, границы 1–4), ссылка с полным выбором (без «Грузовика», без опций), сообщение при потерянном правиле.
+- Query-параметры симулируются `Livewire::withQueryParams([...])->test(...)`; время — `travelTo` (сброс `travelBack()` в tearDown).
 
 ## See Also
 

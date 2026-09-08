@@ -18,4 +18,15 @@ enum CarTypeEnum: string
             self::Truck => 'Грузовик',
         };
     }
+
+    /**
+     * Типы, которые клиент выбирает на сайте. Грузовик — вне правил прайса:
+     * грузовые авто записываются по звонку (ФТ-18).
+     *
+     * @return list<self>
+     */
+    public static function bookable(): array
+    {
+        return [self::Passenger, self::Crossover, self::Suv];
+    }
 }

@@ -33,8 +33,6 @@ use Illuminate\Support\Carbon;
  * @property string|null $idempotency_key
  * @property int $radius
  * @property CarTypeEnum $car_type
- * @property bool $has_runflat
- * @property bool $has_tpms
  * @property int $total_price
  * @property int|null $operator_id
  * @property Carbon|null $created_at
@@ -43,7 +41,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'customer_id', 'car_id', 'slot_id', 'booking_code_id', 'start_time', 'status', 'source',
     'cancel_reason', 'idempotency_key',
-    'radius', 'car_type', 'has_runflat', 'has_tpms', 'total_price', 'operator_id',
+    'radius', 'car_type', 'total_price', 'operator_id',
 ])]
 class Booking extends Model
 {
@@ -98,8 +96,6 @@ class Booking extends Model
             'status' => BookingStatusEnum::class,
             'source' => BookingSourceEnum::class,
             'car_type' => CarTypeEnum::class,
-            'has_runflat' => 'boolean',
-            'has_tpms' => 'boolean',
         ];
     }
 }

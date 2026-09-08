@@ -10,68 +10,109 @@ use Illuminate\Database\Seeder;
 
 class CatalogSeeder extends Seeder
 {
-    /** Цены демо-сценария (мокап .template/): Снятие/установка 600 ₽, Балансировка 400 ₽ и т.д. */
-    private const SERVICES = [
-        ['Снятие/установка колёс', ServiceCategoryEnum::Tire, 60000],
-        ['Балансировка колёс', ServiceCategoryEnum::Tire, 40000],
-        ['Ремонт прокола', ServiceCategoryEnum::Tire, 50000],
-        ['Вулканизация', ServiceCategoryEnum::Tire, 80000],
-        ['Замена ниппеля', ServiceCategoryEnum::Tire, 15000],
-        ['Правка дисков', ServiceCategoryEnum::Tire, 70000],
-        ['Хранение шин (сезон)', ServiceCategoryEnum::Storage, 250000],
-        ['Подготовка к сезону', ServiceCategoryEnum::Other, 90000],
+    /**
+     * Реальный прайс-лист (2026-09): цены за 1 колесо в рублях. Работы таблиц прайса —
+     * цены по группам радиусов (R12–15 / R16–17 / R18–19 / R20–21) и двум колонкам типов
+     * («легковые» — passenger; «внедорожники» — crossover/suv с общей ценой).
+     * base_price услуги = минимальная цена (легковые, R12–15) — «от N ₽» на карточке.
+     */
+    private const PRICE_LIST = [
+        'Снятие и установка колёс' => [
+            'passenger' => [15000, 22000, 30000, 38000],
+            'suv' => [22000, 30000, 38000, 42000],
+        ],
+        'Демонтаж колёс' => [
+            'passenger' => [12000, 16000, 19000, 22000],
+            'suv' => [16000, 20000, 22000, 25000],
+        ],
+        'Монтаж колёс' => [
+            'passenger' => [12000, 16000, 19000, 21000],
+            'suv' => [16000, 20000, 21000, 25000],
+        ],
+        'Балансировка колёс' => [
+            'passenger' => [14000, 21000, 26000, 38000],
+            'suv' => [21000, 30000, 38000, 40000],
+        ],
+        'Комплекс работ (1 колесо)' => [
+            'passenger' => [53000, 75000, 94000, 119000],
+            'suv' => [75000, 100000, 119000, 132000],
+        ],
+    ];
+
+    /** Радиусы сайта (R13–R21) по группам прайса. */
+    private const RADIUS_GROUPS = [
+        [13, 14, 15],
+        [16, 17],
+        [18, 19],
+        [20, 21],
+    ];
+
+    /**
+     * Дополнительные работы прайса (не входят в комплекс): поштучные, правил нет —
+     * цена по base_price за штуку (количество задаёт клиент).
+     */
+    private const EXTRA_WORKS = [
+        ['Замена вентиля', 5000],
+        ['Установка датчика давления (TPMS)', 10000],
+        ['Монтаж/демонтаж шин RunFlat', 10000],
+        ['Покрытие ступицы антикоррозийной смазкой', 10000],
+        ['Утилизация шины', 20000],
     ];
 
     public function run(): void
     {
-        foreach (self::SERVICES as [$name, $category, $basePrice]) {
-            Service::updateOrCreate(
-                ['name' => $name],
-                ['category' => $category, 'is_active' => true, 'base_price' => $basePrice],
-            );
-        }
-
-        $this->seedMountingRules();
+        $this->seedPriceListWorks();
+        $this->seedExtraWorks();
+        $this->deactivateRemovedServices();
     }
 
-    /**
-     * Ценовые правила для «Снятие/установка колёс» (ФТ-2): демо-формула из мокапа —
-     * базовый тариф R≤15: 600 ₽, далее +250 ₽ за радиус, +150 ₽ кроссовер / +350 ₽ внедорожник, +300 ₽ RunFlat.
-     * Правила хранят абсолютную цену комбинации; подбор точным совпадением (будущий PricingService).
-     */
-    private function seedMountingRules(): void
+    /** Работы прайса: полный куб правил (услуга × радиус × тип) — подбор точным совпадением (ADR 0007). */
+    private function seedPriceListWorks(): void
     {
-        $mounting = Service::where('name', 'Снятие/установка колёс')->firstOrFail();
+        foreach (self::PRICE_LIST as $name => $columns) {
+            $service = Service::updateOrCreate(
+                ['name' => $name],
+                ['category' => ServiceCategoryEnum::Tire, 'is_active' => true, 'base_price' => $columns['passenger'][0]],
+            );
 
-        foreach (range(13, 18) as $radius) {
-            foreach (CarTypeEnum::cases() as $carType) {
-                if ($carType === CarTypeEnum::Truck) {
-                    continue;
-                }
+            foreach (self::RADIUS_GROUPS as $groupIndex => $radii) {
+                foreach ($radii as $radius) {
+                    foreach (CarTypeEnum::bookable() as $carType) {
+                        $column = $carType === CarTypeEnum::Passenger ? 'passenger' : 'suv';
 
-                $typeMarkup = match ($carType) {
-                    CarTypeEnum::Crossover => 15000,
-                    CarTypeEnum::Suv => 35000,
-                    default => 0,
-                };
-                $radiusMarkup = max(0, $radius - 15) * 25000;
-                $base = 60000 + $radiusMarkup + $typeMarkup;
-
-                foreach ([false, true] as $hasRunflat) {
-                    $runflatMarkup = $hasRunflat ? 30000 : 0;
-
-                    PriceRule::updateOrCreate(
-                        [
-                            'service_id' => $mounting->id,
-                            'radius' => $radius,
-                            'car_type' => $carType,
-                            'has_runflat' => $hasRunflat,
-                            'has_tpms' => false,
-                        ],
-                        ['price' => $base + $runflatMarkup],
-                    );
+                        PriceRule::updateOrCreate(
+                            [
+                                'service_id' => $service->id,
+                                'radius' => $radius,
+                                'car_type' => $carType,
+                            ],
+                            ['price' => $columns[$column][$groupIndex]],
+                        );
+                    }
                 }
             }
+        }
+    }
+
+    private function seedExtraWorks(): void
+    {
+        foreach (self::EXTRA_WORKS as [$name, $price]) {
+            Service::updateOrCreate(
+                ['name' => $name],
+                ['category' => ServiceCategoryEnum::Tire, 'is_active' => true, 'base_price' => $price],
+            );
+        }
+    }
+
+    /** Услуги вне прайса (устаревший каталог) деактивируются, их правила удаляются. */
+    private function deactivateRemovedServices(): void
+    {
+        $keep = [...array_keys(self::PRICE_LIST), ...array_column(self::EXTRA_WORKS, 0)];
+        $removedIds = Service::whereNotIn('name', $keep)->pluck('id');
+
+        if ($removedIds->isNotEmpty()) {
+            PriceRule::whereIn('service_id', $removedIds)->delete();
+            Service::whereIn('id', $removedIds)->update(['is_active' => false]);
         }
     }
 }

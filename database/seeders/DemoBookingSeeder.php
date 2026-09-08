@@ -9,9 +9,10 @@ use App\Models\Booking\Booking;
 use App\Models\Booking\BookingService;
 use App\Models\Car;
 use App\Models\Customer;
-use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
 use App\Models\Slot;
+use App\Services\PricingCalculator;
+use App\ValueObjects\VehicleParams;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -34,7 +35,7 @@ class DemoBookingSeeder extends Seeder
     public function run(): void
     {
         $services = Service::where('is_active', true)->get()->keyBy('name');
-        $mounting = $services->get('Снятие/установка колёс');
+        $mounting = $services->get('Снятие и установка колёс');
         $balancing = $services->get('Балансировка колёс');
 
         $customers = $this->seedCustomers();
@@ -74,10 +75,8 @@ class DemoBookingSeeder extends Seeder
                 Car::create([
                     'customer_id' => $customer->id,
                     'plate' => $this->randomPlate(),
-                    'radius' => rand(13, 18),
-                    'car_type' => fake()->randomElement([CarTypeEnum::Passenger, CarTypeEnum::Passenger, CarTypeEnum::Crossover, CarTypeEnum::Crossover, CarTypeEnum::Suv]),
-                    'has_runflat' => rand(1, 100) <= 15,
-                    'has_tpms' => rand(1, 100) <= 20,
+                    'radius' => rand(13, 21),
+                    'car_type' => fake()->randomElement(CarTypeEnum::bookable()),
                 ]);
             }
 
@@ -122,7 +121,7 @@ class DemoBookingSeeder extends Seeder
         $customer = $customers->random();
         $car = $customer->cars->random();
 
-        $workingHours = [10, 11, 12, 14, 15, 16, 17, 18]; // без 13:00 — обед, слоты закрыты (SlotSeeder)
+        $workingHours = range(9, 18);
         $hour = $workingHours[array_rand($workingHours)];
         $minute = $date->isFuture() ? 0 : rand(0, 3) * 15; // виджет — целые часы, админка — любое время
         $slot = Slot::whereDate('date', $date)->where('hour', $hour)->first()
@@ -152,22 +151,29 @@ class DemoBookingSeeder extends Seeder
             'cancel_reason' => $status === BookingStatusEnum::Cancelled ? 'Клиент отменил' : null,
             'radius' => $car->radius,
             'car_type' => $car->car_type ?? CarTypeEnum::Passenger,
-            'has_runflat' => $car->has_runflat,
-            'has_tpms' => $car->has_tpms,
             'total_price' => 0, // пересчитается ниже по составу
         ]);
 
-        $total = 0;
-        foreach ($services as $service) {
-            $price = $this->priceFor($service, $car);
-            $total += $price;
+        // Виджет записывает сезонный комплект (4 колеса); админка — частичный заказ
+        $quantity = $source === BookingSourceEnum::Site ? 4 : rand(1, 4);
+        $quantities = collect($services)->mapWithKeys(fn (Service $service): array => [$service->id => $quantity])->all();
+
+        // Расчёт — единый PricingCalculator (НФ-4), как на сайте и при подтверждении
+        $quote = app(PricingCalculator::class)->quote(
+            collect($services),
+            new VehicleParams($car->radius, $car->car_type),
+            $quantities,
+        );
+
+        foreach ($quote['lines'] as $line) {
             BookingService::create([
                 'booking_id' => $booking->id,
-                'service_id' => $service->id,
-                'price' => $price,
+                'service_id' => $line['service']->id,
+                'price' => $line['unit_price'], // снимок: цена за единицу
+                'quantity' => $line['quantity'],
             ]);
         }
-        $booking->update(['total_price' => $total]);
+        $booking->update(['total_price' => $quote['total']]);
     }
 
     private function statusFor(CarbonInterface $date): BookingStatusEnum
@@ -187,31 +193,6 @@ class DemoBookingSeeder extends Seeder
         }
 
         return BookingStatusEnum::Done;
-    }
-
-    /**
-     * Цена строки по правилам (ФТ-2): точное совпадение → правило без опций → базовая цена услуги.
-     * Демо-копия подбора — при реализации расчёт уйдёт в PricingService (единая точка, НФ-4).
-     */
-    private function priceFor(Service $service, Car $car): int
-    {
-        $rule = PriceRule::where('service_id', $service->id)
-            ->where('radius', $car->radius)
-            ->where('car_type', $car->car_type)
-            ->where('has_runflat', $car->has_runflat)
-            ->where('has_tpms', $car->has_tpms)
-            ->first();
-
-        if ($rule === null) {
-            $rule = PriceRule::where('service_id', $service->id)
-                ->where('radius', $car->radius)
-                ->where('car_type', $car->car_type)
-                ->where('has_runflat', false)
-                ->where('has_tpms', false)
-                ->first();
-        }
-
-        return $rule?->price ?? $service->base_price;
     }
 
     private function randomPlate(): string

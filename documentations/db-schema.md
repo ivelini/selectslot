@@ -1,8 +1,8 @@
 # TireSlot — схема БД
 
 - **Дата:** 2026-09-08
-- **Версия:** 0.8
-- **Связан с:** `documentations/tz/functional-requirements.md` v0.11
+- **Версия:** 0.9
+- **Связан с:** `documentations/tz/functional-requirements.md` v0.13
 
 Конвенции: Laravel (snake_case, `timestamps` на всех таблицах), цены в копейках (`unsignedInteger`), enum-поля — string-колонки со значениями ниже.
 
@@ -33,10 +33,8 @@
 | id | bigint PK | |
 | customer_id | FK → customers | |
 | plate | string nullable | госномер необязателен |
-| radius | smallint nullable | R13–R22 |
+| radius | smallint nullable | R13–R21 |
 | car_type | string nullable | `passenger` / `crossover` / `suv` / `truck` |
-| has_runflat | boolean default false | |
-| has_tpms | boolean default false | |
 
 Индексы: `(customer_id)`.
 
@@ -56,15 +54,13 @@
 |---|---|---|
 | id | bigint PK | |
 | service_id | FK → services | |
-| radius | smallint | обязательно (fallback «любой» — через base_price услуги) |
-| car_type | string | `passenger` / `crossover` / `suv` / `truck` |
-| has_runflat | boolean default false | |
-| has_tpms | boolean default false | |
-| price | unsignedInteger | копейки |
+| radius | smallint | R13–R21; правило на конкретный радиус |
+| car_type | string | `passenger` / `crossover` / `suv` (truck — по звонку, правил нет) |
+| price | unsignedInteger | цена за единицу (1 колесо/шт), копейки |
 
-`unique (service_id, radius, car_type, has_runflat, has_tpms)`.
+`unique (service_id, radius, car_type)`.
 
-Подбор цены (ФТ-2): точное совпадение (услуга, радиус, тип, опции) → правило той же услуги с `has_runflat = false, has_tpms = false` → `services.base_price`.
+Подбор цены (ФТ-2): только точное совпадение (услуга, радиус, тип); у услуги нет правил → `services.base_price`; правила есть, комбинации нет → ошибка конфигурации (PricingException, ADR 0007).
 
 ### schedule_templates — шаблон недели
 
@@ -116,8 +112,6 @@
 | idempotency_key | uuid nullable unique | защита от двойного сабмита (НФ-1) |
 | radius | smallint | снимок параметров на момент записи |
 | car_type | string | снимок |
-| has_runflat | boolean | снимок |
-| has_tpms | boolean | снимок |
 | total_price | unsignedInteger | снимок цены, копейки; корректируется оператором (ФТ-19) |
 | operator_id | FK → users nullable | кто создал из админки |
 
@@ -143,7 +137,8 @@
 | id | bigint PK | |
 | booking_id | FK → bookings | |
 | service_id | FK → services | |
-| price | unsignedInteger | цена строки на момент записи; корректируется оператором (ФТ-19) |
+| price | unsignedInteger | цена за единицу на момент записи; корректируется оператором (ФТ-19) |
+| quantity | tinyint default 1 | количество 1–4; итог строки = price × quantity |
 
 `unique (booking_id, service_id)`.
 

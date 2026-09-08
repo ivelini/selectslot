@@ -18,12 +18,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $plate
  * @property int|null $radius
  * @property CarTypeEnum|null $car_type
- * @property bool $has_runflat
- * @property bool $has_tpms
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['customer_id', 'plate', 'radius', 'car_type', 'has_runflat', 'has_tpms'])]
+#[Fillable(['customer_id', 'plate', 'radius', 'car_type'])]
 class Car extends Model
 {
     /** @use HasFactory<CarFactory> */
@@ -45,8 +43,6 @@ class Car extends Model
     {
         return [
             'car_type' => CarTypeEnum::class,
-            'has_runflat' => 'boolean',
-            'has_tpms' => 'boolean',
         ];
     }
 }
