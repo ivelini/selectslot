@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Время больше недоступно</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="ts-body">
+    <div class="app">
+      <div class="wrapper">
+        <header class="container">
+          <div class="ts-header-row">
+            <div class="logo">
+              <a href="../index.html"><img src="../assets/img/logo.svg" alt="Автоальянс" /></a>
+            </div>
+            <p class="header-tagline">Шиномонтаж · онлайн-запись</p>
+            <p class="header-number">+7 (351) 70-00-319</p>
+            <a class="header-my-booking" href="../my-booking/index.html">
+              <img src="../assets/img/login.svg" alt="" />
+              <span>Мои записи</span>
+            </a>
+          </div>
+        </header>
+
+        <section class="booking-section container">
+          <h2>Подтверждение записи</h2>
+
+          <div class="steps">
+            <a class="step step--done" href="../index.html">
+              <span class="step-num">1</span>
+              <span class="step-title">Время</span>
+            </a>
+            <a class="step step--done" href="services.html">
+              <span class="step-num">2</span>
+              <span class="step-title">Услуги</span>
+            </a>
+            <a class="step step--done" href="details.html">
+              <span class="step-num">3</span>
+              <span class="step-title">Данные</span>
+            </a>
+            <span class="step step--active">
+              <span class="step-num">4</span>
+              <span class="step-title">Подтверждение</span>
+            </span>
+          </div>
+
+          <div class="code-card">
+            <h3>Код из SMS</h3>
+            <div class="alert alert--error">
+              <img src="../assets/img/warning.svg" alt="" />
+              <div>
+                <p class="alert-title">Выбранное время больше недоступно</p>
+                <p class="alert-text">
+                  Слот 11:00 только что закрыли (перерыв или поломка). Запись не создана — ничего
+                  не удержано и не списано. Выберите другое время: услуги и данные сохранятся,
+                  придёт новый код.
+                </p>
+              </div>
+            </div>
+            <div class="otp-inputs">
+              <input class="otp-digit otp-digit--error" type="text" inputmode="numeric" maxlength="1" value="4" aria-label="Первая цифра кода" />
+              <input class="otp-digit otp-digit--error" type="text" inputmode="numeric" maxlength="1" value="8" aria-label="Вторая цифра кода" />
+              <input class="otp-digit otp-digit--error" type="text" inputmode="numeric" maxlength="1" value="1" aria-label="Третья цифра кода" />
+              <input class="otp-digit otp-digit--error" type="text" inputmode="numeric" maxlength="1" value="2" aria-label="Четвёртая цифра кода" />
+            </div>
+            <a class="booking-btn-primary" href="../index.html">Выбрать другое время</a>
+            <p class="code-hint">
+              Запись создаётся только в момент подтверждения: до этого времени слот не удерживается
+            </p>
+          </div>
+
+          <div class="code-summary">
+            <span>11 сентября (пт), 11:00 — занято</span>
+            <span>·</span>
+            <span>2 услуги</span>
+            <span>·</span>
+            <span>Итого</span>
+            <b class="booking-summary-total-price">1 700 ₽</b>
+            <a class="code-summary-link" href="../index.html">Другое время</a>
+          </div>
+        </section>
+
+        <footer class="ts-footer">
+          <div class="footer-content container">
+            <div class="footer-group footer-group-center">
+              <p class="footer-grup-num">+7 (351) 70-00-319</p>
+              <button class="footer-get-call" type="button">Заказать звонок</button>
+              <div class="footer-group-city">2026 г. Автоальянс</div>
+            </div>
+            <div class="footer-group">
+              <p class="footer-address">г. Челябинск, Копейское шоссе, 12А</p>
+              <p class="footer-hours">Пн–Сб: 9:00–19:00
+Вс: выходной</p>
+            </div>
+            <div class="footer-group">
+              <a href="../contacts.html" class="footer-group-link">Контакты</a>
+              <a href="../my-booking/index.html" class="footer-group-link">Моя запись</a>
+            </div>
+            <div class="footer-group footer-group-center fg-hide-2">
+              <p class="we-are-in-social">Мы в соцсетях</p>
+              <div class="social-row">
+                <img src="../assets/img/tg.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/wa.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vib.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vk.svg" alt="" class="social-row-item" />
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

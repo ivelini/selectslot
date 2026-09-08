@@ -1,0 +1,77 @@
+networks:
+  network-tireslot:
+    driver: bridge
+
+services:
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: ${DOCKER_APP_NAME:-project}-nginx
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./storage/logs/nginx:/var/log/nginx/
+    ports:
+      - "${DOCKER_NGINX_PORT:-5780}:80"
+    depends_on:
+      - app
+    environment:
+      TZ: ${DOCKER_WORKSPACE_TIMEZONE:-UTC}
+    networks:
+      - network-tireslot
+
+  app:
+    image: app:php8.5-fpm
+    container_name: ${DOCKER_APP_NAME:-project}-app
+    hostname: app-service
+    build:
+      args:
+        user: stl-test
+        uid: 1000
+      context: ./docker/php
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PHP_IDE_CONFIG: "serverName=Docker"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./:/var/www:cached
+    networks:
+      - network-tireslot
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: imsd-db
+    restart: unless-stopped
+    ports:
+      - "${PGPORT:-57435}:5432"
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-tireslot}"
+      POSTGRES_USER: "${DB_USERNAME:-tireslot}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-tireslot}"
+    volumes:
+      - ./storage/postgres_data:/var/lib/postgresql/data
+    networks:
+      - network-tireslot
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-tireslot} -d ${DB_DATABASE:-tireslot}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: 'redis:alpine'
+    container_name: ${DOCKER_APP_NAME:-project}-redis
+    restart: unless-stopped
+    ports:
+      - "${DOCKER_REDIS_PORT:-57379}:6379"
+    environment:
+      TZ: ${DOCKER_WORKSPACE_TIMEZONE:-UTC}
+    volumes:
+      - ${DOCKER_REDIS_STORAGE:-../docker/redis/data}:/var/lib/redis:cached
+    networks:
+      - network-tireslot
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]

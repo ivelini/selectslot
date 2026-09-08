@@ -1,0 +1,181 @@
+# TireSlot — схема БД
+
+- **Дата:** 2026-09-04
+- **Версия:** 0.6
+- **Связан с:** `documentations/tz/functional-requirements.md` v0.10
+
+Конвенции: Laravel (snake_case, `timestamps` на всех таблицах), цены в копейках (`unsignedInteger`), enum-поля — string-колонки со значениями ниже.
+
+## Таблицы
+
+### users — сотрудники
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| name | string | |
+| email | string unique | |
+| password | string | |
+| role | string | `admin` / `operator` |
+
+### customers — клиенты
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| name | string | |
+| phone | string unique | идентификация без регистрации |
+
+### cars — автомобили клиента
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| customer_id | FK → customers | |
+| plate | string nullable | госномер необязателен |
+| radius | smallint nullable | R13–R22 |
+| car_type | string nullable | `passenger` / `crossover` / `suv` / `truck` |
+| has_runflat | boolean default false | |
+| has_tpms | boolean default false | |
+
+Индексы: `(customer_id)`.
+
+### services — услуги
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| name | string | |
+| category | string | `tire` (шиномонтаж) / `storage` (хранение) / `other` |
+| is_active | boolean default true | неактивные не участвуют в записи |
+| base_price | unsignedInteger | базовая цена, копейки; fallback, если правила нет |
+
+### price_rules — ценовые правила
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| service_id | FK → services | |
+| radius | smallint | обязательно (fallback «любой» — через base_price услуги) |
+| car_type | string | `passenger` / `crossover` / `suv` / `truck` |
+| has_runflat | boolean default false | |
+| has_tpms | boolean default false | |
+| price | unsignedInteger | копейки |
+
+`unique (service_id, radius, car_type, has_runflat, has_tpms)`.
+
+Подбор цены (ФТ-2): точное совпадение (услуга, радиус, тип, опции) → правило той же услуги с `has_runflat = false, has_tpms = false` → `services.base_price`.
+
+### schedule_templates — шаблон недели
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| weekday | tinyint unique | 0 (пн) – 6 (вс) |
+| open_time | time nullable | `open_time` + `close_time` = null → выходной |
+| close_time | time nullable | |
+
+Исключений на дату и перерывов как сущностей нет: отклонения от шаблона (праздник, короткий день) и временные закрытия внутри дня — закрытием слотов из админки, в т.ч. массовым на весь день (ФТ-3, ФТ-16).
+
+### slots — слоты (сетка времени)
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| date | date | слот = date + hour |
+| hour | tinyint | 0–23 |
+| is_closed | boolean default false | закрытие слота (единый механизм, ФТ-16) |
+| close_reason | string nullable | причина закрытия |
+| booking_id | FK → bookings nullable | привязка закрытия к записи (чекбокс) |
+
+`unique (date, hour)`.
+
+**Генерация** — команда планировщика каждые 15 мин (идемпотентно):
+- на горизонт `booking_horizon_days` для каждого дня берутся рабочие часы (шаблон недели) → upsert строк `(date, hour)`, **сохраняя** `is_closed` / `close_reason` / `booking_id` у существующих;
+- час стал нерабочим → строка удаляется, только если она открыта и без записей; строка с записями или закрытая остаётся (при записях — предупреждение по ФТ-3).
+
+**Использование:**
+- сайт: строки с `is_closed = false` (+ фильтры ФТ-10);
+- подтверждение кода: `SELECT … FOR UPDATE` строки слота внутри транзакции (НФ-1);
+- закрытие: флаг + причина (+ `booking_id` при чекбоксе);
+- запись вне сетки (админка, время без строки слота): строка создаётся при записи, при чекбоксе — сразу закрытой.
+
+### bookings — записи
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| customer_id | FK → customers | |
+| car_id | FK → cars nullable | госномер необязателен |
+| slot_id | FK → slots | слот-группа; дата берётся из слота |
+| start_time | time | время начала внутри слота: виджет — `:00`, админка — любое (12:20) |
+| status | string | `confirmed` / `arrived` / `done` / `cancelled` / `no_show` (запись создаётся только при подтверждении кода) |
+| source | string | `site` / `admin` |
+| cancel_reason | string nullable | |
+| confirmation_code_hash | string nullable | хэш кода из SMS; переносится из `booking_codes` при создании записи, верификатор отмены (ФТ-14) |
+| idempotency_key | uuid nullable unique | защита от двойного сабмита (НФ-1) |
+| radius | smallint | снимок параметров на момент записи |
+| car_type | string | снимок |
+| has_runflat | boolean | снимок |
+| has_tpms | boolean | снимок |
+| total_price | unsignedInteger | снимок цены, копейки; корректируется оператором (ФТ-19) |
+| operator_id | FK → users nullable | кто создал из админки |
+
+Индексы: `(slot_id)`, `(customer_id)`, `(status)`.
+
+Связь слот → записи: через `slot_id` видны все записи слота (12:00 и 12:20 — один слот). Лимита записей в слоте нет. Статусная машина (допустимые переходы) — в приложении, не в БД (ФТ-12).
+
+### booking_codes — коды подтверждения (заявки сайта)
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| phone | string | |
+| code_hash | string | хэш кода из SMS |
+| payload | json | заявка: имя, госномер, услуги с ценами (снимок), радиус, тип, опции, дата + час слота |
+| expires_at | datetime | TTL кода (параметр `confirmation_code_ttl_min`) |
+| used_at | datetime nullable | код создаёт ровно одну запись |
+
+Индексы: `(phone)`. Просроченные неиспользованные коды удаляются кроном. При подтверждении: строка слота блокируется, запись создаётся из payload, `used_at` ставится, `code_hash` переносится в `bookings` (верификатор отмены).
+
+### booking_services — состав записи (цена на момент)
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| booking_id | FK → bookings | |
+| service_id | FK → services | |
+| price | unsignedInteger | цена строки на момент записи; корректируется оператором (ФТ-19) |
+
+`unique (booking_id, service_id)`.
+
+### settings — параметры конфигурации
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| key | string PK | |
+| value | string | |
+
+Ключи: `reservation_timeout_min`, `cancel_free_before_h`, `min_lead_time_h`, `booking_horizon_days`, `shop_address`, `shop_phone`.
+
+## Связи
+
+```
+users ──< bookings (operator_id)
+customers ──< cars ──< bookings (car_id)
+customers ──< bookings
+services ──< price_rules
+services ──< booking_services >── bookings
+slots ──< bookings (slot_id)
+bookings ──< slots (booking_id, 0..1 — привязка закрытия к записи)
+schedule_templates — источник генерации slots
+```
+
+## Решения, зафиксированные схемой
+
+1. **Слот — хранимая сущность** (`slots`): строки генерируются планировщиком (каждые 15 мин) по расписанию на горизонт записи; закрытие — флаг на строке (единый механизм, ФТ-16). Генерация не удаляет строки с записями и закрытые.
+2. **Запись привязана к слоту** (`slot_id` + `start_time`): зная слот, видны все его записи (12:00 и 12:20); дата — из слота. Лимита записей в слоте нет; запись вне сетки создаёт строку слота по требованию. **Запись создаётся только при подтверждении кода** (из админки — сразу): гонка «подтверждение vs закрытие» сериализуется блокировкой строки слота (НФ-1); двойное создание исключено одноразовым кодом и `idempotency_key`.
+3. **Снимок в записи** — параметры авто и цена фиксируются при создании; прайс/авто задним числом на записи не влияют; корректировка цены — только оператором в админке.
+4. **Перерывы и исключения на дату** — не сущности: отклонения от шаблона недели и временные закрытия — только закрытием слотов из админки, в т.ч. массовым на весь день.
+5. **Счётчик неявок клиента** — вычисляется из `bookings (status = no_show)`, колонки нет.
+6. **Код подтверждения** — заявка виджета живёт в `booking_codes` (хэш + payload + TTL); запись создаётся при вводе кода, хэш переносится в запись как верификатор отмены.

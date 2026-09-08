@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Услуги и параметры авто — запись на шиномонтаж</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="ts-body">
+    <div class="app">
+      <div class="wrapper">
+        <header class="container">
+          <div class="ts-header-row">
+            <div class="logo">
+              <a href="../index.html"><img src="../assets/img/logo.svg" alt="Автоальянс" /></a>
+            </div>
+            <p class="header-tagline">Шиномонтаж · онлайн-запись</p>
+            <p class="header-number">+7 (351) 70-00-319</p>
+            <a class="header-my-booking" href="../my-booking/index.html">
+              <img src="../assets/img/login.svg" alt="" />
+              <span>Мои записи</span>
+            </a>
+          </div>
+        </header>
+
+        <section class="booking-section container">
+          <h2>Выберите услуги</h2>
+          <p class="booking-subtitle">Цена зависит от радиуса, типа и опций автомобиля — итог пересчитается сразу</p>
+
+          <div class="steps">
+            <a class="step step--done" href="../index.html">
+              <span class="step-num">1</span>
+              <span class="step-title">Время</span>
+            </a>
+            <span class="step step--active">
+              <span class="step-num">2</span>
+              <span class="step-title">Услуги</span>
+            </span>
+            <span class="step">
+              <span class="step-num">3</span>
+              <span class="step-title">Данные</span>
+            </span>
+            <span class="step">
+              <span class="step-num">4</span>
+              <span class="step-title">Подтверждение</span>
+            </span>
+          </div>
+
+          <div class="booking-row">
+            <div class="booking-form">
+              <div class="booking-blk">
+                <h3 class="booking-blk-title">Услуги</h3>
+                <div class="services-grid">
+                  <label class="service-checkbox">
+                    <input type="checkbox" name="service" value="install" checked />
+                    <span class="service-checkbox-name">Снятие и установка колёс, комплект</span>
+                    <span class="service-checkbox-price">600 ₽</span>
+                  </label>
+                  <label class="service-checkbox">
+                    <input type="checkbox" name="service" value="balancing" checked />
+                    <span class="service-checkbox-name">Балансировка колёс, комплект</span>
+                    <span class="service-checkbox-price">400 ₽</span>
+                  </label>
+                  <label class="service-checkbox">
+                    <input type="checkbox" name="service" value="repair" />
+                    <span class="service-checkbox-name">Ремонт прокола, 1 колесо</span>
+                    <span class="service-checkbox-price">350 ₽</span>
+                  </label>
+                  <label class="service-checkbox">
+                    <input type="checkbox" name="service" value="vulcanization" />
+                    <span class="service-checkbox-name">Вулканизация, 1 колесо</span>
+                    <span class="service-checkbox-price">500 ₽</span>
+                  </label>
+                  <label class="service-checkbox">
+                    <input type="checkbox" name="service" value="storage" />
+                    <span class="service-checkbox-name">Сезонное хранение шин, комплект</span>
+                    <span class="service-checkbox-price">1 500 ₽</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="booking-blk">
+                <h3 class="booking-blk-title">Параметры автомобиля</h3>
+                <p class="booking-blk-hint">
+                  От параметров зависит цена: цены в услугах — базовый тариф, наценки за радиус, тип и опции
+                  добавятся к итогу.
+                </p>
+
+                <div class="param-group">
+                  <span class="param-group-label">Радиус колеса</span>
+                  <div class="param-chips">
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r13" />
+                      <span>R13</span>
+                      <span class="param-chip-note">базовый</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r14" />
+                      <span>R14</span>
+                      <span class="param-chip-note">+100 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r15" />
+                      <span>R15</span>
+                      <span class="param-chip-note">+150 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r16" checked />
+                      <span>R16</span>
+                      <span class="param-chip-note">+250 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r17" />
+                      <span>R17</span>
+                      <span class="param-chip-note">+400 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r18" />
+                      <span>R18</span>
+                      <span class="param-chip-note">+550 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r19" />
+                      <span>R19</span>
+                      <span class="param-chip-note">+700 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r20" />
+                      <span>R20</span>
+                      <span class="param-chip-note">+900 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r21" />
+                      <span>R21</span>
+                      <span class="param-chip-note">+1 100 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="r22" />
+                      <span>R22</span>
+                      <span class="param-chip-note">+1 300 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="radius" value="unknown" />
+                      <span>Не знаю</span>
+                      <span class="param-chip-note">базовый тариф</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="param-group">
+                  <span class="param-group-label">Тип автомобиля</span>
+                  <div class="param-chips">
+                    <label class="param-chip">
+                      <input type="radio" name="car-type" value="passenger" />
+                      <span>Легковая</span>
+                      <span class="param-chip-note">базовый</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="car-type" value="crossover" checked />
+                      <span>Кроссовер</span>
+                      <span class="param-chip-note">+150 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="car-type" value="suv" />
+                      <span>Внедорожник</span>
+                      <span class="param-chip-note">+300 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="car-type" value="truck" />
+                      <span>Грузовик</span>
+                      <span class="param-chip-note">+500 ₽</span>
+                    </label>
+                    <label class="param-chip">
+                      <input type="radio" name="car-type" value="unknown" />
+                      <span>Не знаю</span>
+                      <span class="param-chip-note">базовый тариф</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="param-group">
+                  <span class="param-group-label">Опции</span>
+                  <div class="services-grid">
+                    <label class="service-checkbox">
+                      <input type="checkbox" name="option" value="runflat" checked />
+                      <span class="service-checkbox-name">RunFlat (усиленная боковина)</span>
+                      <span class="service-checkbox-price">+300 ₽</span>
+                    </label>
+                    <label class="service-checkbox">
+                      <input type="checkbox" name="option" value="tpms" />
+                      <span class="service-checkbox-name">Датчики давления TPMS</span>
+                      <span class="service-checkbox-price">+400 ₽</span>
+                    </label>
+                  </div>
+                </div>
+
+                <p class="form-hint">
+                  Не знаете параметры автомобиля? Отметьте «Не знаю» — применится базовый тариф.
+                </p>
+              </div>
+            </div>
+
+            <aside class="booking-summary">
+              <h3 class="booking-summary-title">Ваша запись</h3>
+              <div class="booking-summary-group">
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Дата</span>
+                  <span class="booking-summary-value">11 сентября (пт)</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Время</span>
+                  <span class="booking-summary-value">11:00</span>
+                </div>
+              </div>
+              <div class="booking-summary-group">
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Снятие и установка колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">600 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Балансировка колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">400 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">R16 (радиус)</span>
+                  <span class="booking-summary-value booking-summary-value--surcharge">+250 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Кроссовер (тип авто)</span>
+                  <span class="booking-summary-value booking-summary-value--surcharge">+150 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">RunFlat</span>
+                  <span class="booking-summary-value booking-summary-value--surcharge">+300 ₽</span>
+                </div>
+              </div>
+              <div class="booking-summary-total">
+                <span>Итого</span>
+                <span class="booking-summary-total-price">1 700 ₽</span>
+              </div>
+              <a class="booking-btn-primary" href="details.html">Продолжить</a>
+              <a class="booking-summary-link" href="../index.html">Изменить время</a>
+            </aside>
+          </div>
+        </section>
+
+        <footer class="ts-footer">
+          <div class="footer-content container">
+            <div class="footer-group footer-group-center">
+              <p class="footer-grup-num">+7 (351) 70-00-319</p>
+              <button class="footer-get-call" type="button">Заказать звонок</button>
+              <div class="footer-group-city">2026 г. Автоальянс</div>
+            </div>
+            <div class="footer-group">
+              <p class="footer-address">г. Челябинск, Копейское шоссе, 12А</p>
+              <p class="footer-hours">Пн–Сб: 9:00–19:00
+Вс: выходной</p>
+            </div>
+            <div class="footer-group">
+              <a href="../contacts.html" class="footer-group-link">Контакты</a>
+              <a href="../my-booking/index.html" class="footer-group-link">Моя запись</a>
+            </div>
+            <div class="footer-group footer-group-center fg-hide-2">
+              <p class="we-are-in-social">Мы в соцсетях</p>
+              <div class="social-row">
+                <img src="../assets/img/tg.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/wa.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vib.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vk.svg" alt="" class="social-row-item" />
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

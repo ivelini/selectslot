@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Данные для записи — шиномонтаж</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="ts-body">
+    <div class="app">
+      <div class="wrapper">
+        <header class="container">
+          <div class="ts-header-row">
+            <div class="logo">
+              <a href="../index.html"><img src="../assets/img/logo.svg" alt="Автоальянс" /></a>
+            </div>
+            <p class="header-tagline">Шиномонтаж · онлайн-запись</p>
+            <p class="header-number">+7 (351) 70-00-319</p>
+            <a class="header-my-booking" href="../my-booking/index.html">
+              <img src="../assets/img/login.svg" alt="" />
+              <span>Мои записи</span>
+            </a>
+          </div>
+        </header>
+
+        <section class="booking-section container">
+          <h2>Данные для записи</h2>
+          <p class="booking-subtitle">На указанный телефон придёт SMS с кодом подтверждения</p>
+
+          <div class="steps">
+            <a class="step step--done" href="../index.html">
+              <span class="step-num">1</span>
+              <span class="step-title">Время</span>
+            </a>
+            <a class="step step--done" href="services.html">
+              <span class="step-num">2</span>
+              <span class="step-title">Услуги</span>
+            </a>
+            <span class="step step--active">
+              <span class="step-num">3</span>
+              <span class="step-title">Данные</span>
+            </span>
+            <span class="step">
+              <span class="step-num">4</span>
+              <span class="step-title">Подтверждение</span>
+            </span>
+          </div>
+
+          <div class="booking-row">
+            <div class="booking-form">
+              <div class="booking-datetime">
+                <img src="../assets/img/clock.svg" alt="" />
+                <span>
+                  <span class="booking-datetime-value">11 сентября (пт), 11:00</span>
+                  — прибыть к этому времени
+                </span>
+                <a class="booking-datetime-change" href="../index.html">Изменить время</a>
+              </div>
+
+              <div class="booking-blk">
+                <h3 class="booking-blk-title">Контактные данные</h3>
+                <div class="booking-fields-row">
+                  <div class="auth_field">
+                    <label for="booking-name">Имя</label>
+                    <input type="text" id="booking-name" placeholder="Как к вам обращаться" />
+                  </div>
+                  <div class="auth_field">
+                    <label for="booking-phone">Телефон</label>
+                    <input type="text" id="booking-phone" placeholder="+7 (900) 000-00-00" />
+                    <p class="auth_field_prompt">Код из SMS придёт на этот номер</p>
+                  </div>
+                </div>
+                <div class="auth_field">
+                  <label for="booking-plate">Госномер автомобиля</label>
+                  <input type="text" id="booking-plate" placeholder="А 000 АА 174" />
+                  <p class="auth_field_prompt">Необязательно — пригодится при повторной записи</p>
+                </div>
+                <div class="booking-consent">
+                  <img src="../assets/img/order_check.svg" alt="" />
+                  <span>
+                    Отправляя форму, я соглашаюсь с
+                    <a href="#">политикой обработки персональных данных</a>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <aside class="booking-summary">
+              <h3 class="booking-summary-title">Ваша запись</h3>
+              <div class="booking-summary-group">
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Дата</span>
+                  <span class="booking-summary-value">11 сентября (пт)</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Время</span>
+                  <span class="booking-summary-value">11:00</span>
+                </div>
+              </div>
+              <div class="booking-summary-group">
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Снятие и установка колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">600 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">Балансировка колёс</span>
+                  <span class="booking-summary-value booking-summary-value--price">400 ₽</span>
+                </div>
+                <div class="booking-summary-row">
+                  <span class="booking-summary-label">R16, кроссовер, RunFlat</span>
+                  <span class="booking-summary-value booking-summary-value--surcharge">+700 ₽</span>
+                </div>
+              </div>
+              <div class="booking-summary-total">
+                <span>Итого</span>
+                <span class="booking-summary-total-price">1 700 ₽</span>
+              </div>
+              <a class="booking-btn-primary" href="code.html">Получить код</a>
+              <a class="booking-summary-link" href="services.html">Изменить услуги</a>
+            </aside>
+          </div>
+        </section>
+
+        <footer class="ts-footer">
+          <div class="footer-content container">
+            <div class="footer-group footer-group-center">
+              <p class="footer-grup-num">+7 (351) 70-00-319</p>
+              <button class="footer-get-call" type="button">Заказать звонок</button>
+              <div class="footer-group-city">2026 г. Автоальянс</div>
+            </div>
+            <div class="footer-group">
+              <p class="footer-address">г. Челябинск, Копейское шоссе, 12А</p>
+              <p class="footer-hours">Пн–Сб: 9:00–19:00
+Вс: выходной</p>
+            </div>
+            <div class="footer-group">
+              <a href="../contacts.html" class="footer-group-link">Контакты</a>
+              <a href="../my-booking/index.html" class="footer-group-link">Моя запись</a>
+            </div>
+            <div class="footer-group footer-group-center fg-hide-2">
+              <p class="we-are-in-social">Мы в соцсетях</p>
+              <div class="social-row">
+                <img src="../assets/img/tg.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/wa.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vib.svg" alt="" class="social-row-item" />
+                <img src="../assets/img/vk.svg" alt="" class="social-row-item" />
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>
