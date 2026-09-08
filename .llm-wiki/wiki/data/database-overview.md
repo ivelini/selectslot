@@ -1,7 +1,7 @@
 # Схема БД: таблицы, связи, ключевые решения
 
-> Sources: TireSlot db-schema v0.6, 2026-09-04; ФТ v0.10, 2026-09-04
-> Raw: [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md)
+> Sources: TireSlot db-schema v0.6, 2026-09-04; ФТ v0.10, 2026-09-04; Каркас проекта, 2026-09-08
+> Raw: [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
 
 ## Overview
 
@@ -44,6 +44,10 @@ schedule_templates — источник генерации slots
 4. Перерывы и исключения на дату — не сущности, выражаются закрытием слотов (ФТ-3, ФТ-16).
 5. Счётчик неявок — вычисляется из `bookings (status = no_show)`, колонки нет.
 6. Заявка виджета живёт в `booking_codes`; при подтверждении `code_hash` переносится в запись как верификатор отмены.
+
+## Реализация и демо-данные (2026-09-08)
+
+Схема реализована миграциями и моделями (Laravel 13: атрибуты `#[Fillable]`, `casts()`); enum-классы в `app/Enums/`. Сиды (DatabaseSeeder) наполняют демо-окружение: пользователи `admin@tireslot.local` / `operator@tireslot.local` (пароль `password`), 8 услуг и 36 прайс-правил (демо-цены из мокапа), шаблон Пн–Сб 9:00–19:00, слоты на 30 дней с закрытыми обедами 13:00, записи на окно −7…+6 дней от today. Копейки — `unsignedInteger`; производитель работ: `SlotGridGenerator` (см. [slot-grid](../domain/slot-grid.md)); демо-подбор цены в сиде — временная копия, уйдёт в PricingService.
 
 ## See Also
 

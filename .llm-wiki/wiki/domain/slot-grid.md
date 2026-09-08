@@ -1,7 +1,7 @@
 # Слоты: сетка времени, генерация, закрытие
 
-> Sources: TireSlot ФТ v0.10, 2026-09-04; db-schema v0.6, 2026-09-04; ADR 0001, 2026-09-04; ADR 0003, 2026-09-04
-> Raw: [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ADR 0001](../../raw/architecture/2026-09-04-0001-hranimaya-setka-slotov.md); [ADR 0003](../../raw/architecture/2026-09-04-0003-chasovaya-setka-bez-postov.md)
+> Sources: TireSlot ФТ v0.10, 2026-09-04; db-schema v0.6, 2026-09-04; ADR 0001, 2026-09-04; ADR 0003, 2026-09-04; Каркас проекта, 2026-09-08
+> Raw: [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ADR 0001](../../raw/architecture/2026-09-04-0001-hranimaya-setka-slotov.md); [ADR 0003](../../raw/architecture/2026-09-04-0003-chasovaya-setka-bez-postov.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
 
 ## Overview
 
@@ -10,7 +10,7 @@
 ## Сетка: расписание и генерация
 
 - Шаблон недели — `schedule_templates`: для каждого дня часы работы или выходной. Исключений на дату и перерывов как сущностей нет — отклонения выражаются закрытием слотов.
-- Планировщик каждые 15 мин генерирует строки `(date, hour)` на горизонт записи (`booking_horizon_days`, 30) идемпотентно (upsert), **сохраняя** `is_closed`/`close_reason`/`booking_id` у существующих строк.
+- Реализация: `App\Services\SlotGridGenerator` (идемпотентный `insertOrIgnore`, удаляет только открытые пустые строки вне шаблона, даты < today не трогает) вызывается командой `slots:generate` каждые 15 мин (расписание Laravel) и сидом SlotSeeder. Горизонт — `settings.booking_horizon_days` (fallback 30). Сравнения дат — только через `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату).
 - Час стал нерабочим: строка удаляется только если открыта и без записей. Строка с записями или закрытая остаётся; при записях — предупреждение «в затрагиваемом времени N записей». Записи не отменяются и не сдвигаются автоматически — разбирает оператор (обзвон, перенос).
 - Строка, которой нет в сетке (время вне расписания), создаётся по требованию при записи из админки; с чекбоксом закрытия — сразу закрытой.
 

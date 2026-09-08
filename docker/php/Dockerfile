@@ -7,6 +7,7 @@ ARG uid
 # Install main dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    autoconf \
     ffmpeg libsm6 libxext6 \
     libicu-dev \
     zlib1g-dev \
@@ -21,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     locales \
     pkg-config \
     sqlite3 libsqlite3-dev \
+    libpq-dev \
     libzip-dev zip unzip \
     git \
     curl \
@@ -28,8 +30,14 @@ RUN apt-get update && apt-get install -y \
     gnupg
 
 # Install PECL and PEAR extensions
-RUN pecl install \
-    redis
+# phpredis из GitHub: pecl.php.net недоступен из build-контекста (REST/443 не отвечает)
+RUN git clone --depth 1 --branch 6.3.0 https://github.com/phpredis/phpredis /tmp/phpredis \
+    && cd /tmp/phpredis \
+    && phpize \
+    && ./configure \
+    && make -j"$(nproc)" \
+    && make install \
+    && rm -rf /tmp/phpredis
 
 # Enable PECL and PEAR extensions
 RUN docker-php-ext-enable \
@@ -47,6 +55,7 @@ RUN docker-php-ext-install mbstring
 RUN docker-php-ext-install pdo
 RUN docker-php-ext-install pdo_mysql
 RUN docker-php-ext-install pdo_sqlite
+RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install pcntl
 RUN docker-php-ext-install xml
 RUN docker-php-ext-install zip
