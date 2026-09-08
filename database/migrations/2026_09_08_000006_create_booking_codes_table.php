@@ -12,9 +12,9 @@ return new class extends Migration
             $table->id();
             $table->string('phone');
             $table->string('code_hash'); // хэш кода из SMS, не plaintext
-            $table->json('payload'); // заявка: снимок услуг с ценами, авто, дата+час
-            $table->timestamp('expires_at');
             $table->timestamp('used_at')->nullable(); // код создаёт ровно одну запись
+            // заявка до подтверждения не хранится: при вводе кода передаётся актуальный выбор (одна SMS на цикл)
+            // TTL кода без поля: просрочка = created_at + reservation_timeout_min (крон чистит неиспользованные)
             $table->timestamps();
 
             $table->index('phone');

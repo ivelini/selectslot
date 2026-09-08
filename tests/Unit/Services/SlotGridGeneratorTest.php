@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\BookingSourceEnum;
 use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
-use App\Models\Booking;
+use App\Models\Booking\Booking;
 use App\Models\Customer;
 use App\Models\ScheduleTemplate;
 use App\Models\Setting;

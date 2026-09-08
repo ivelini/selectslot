@@ -1,7 +1,7 @@
 # Схема БД: таблицы, связи, ключевые решения
 
-> Sources: TireSlot db-schema v0.6, 2026-09-04; ФТ v0.10, 2026-09-04; Каркас проекта, 2026-09-08
-> Raw: [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
+> Sources: TireSlot db-schema v0.8, 2026-09-08; ФТ v0.11, 2026-09-08; Каркас проекта, 2026-09-08
+> Raw: [db-schema v0.8](../../raw/domain/2026-09-08-db-schema.md); [ФТ v0.11](../../raw/domain/2026-09-08-functional-requirements.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
 
 ## Overview
 
@@ -16,8 +16,8 @@
 - **price_rules** — ценовые правила: service_id, radius, car_type, has_runflat, has_tpms, price. `unique (service_id, radius, car_type, has_runflat, has_tpms)`; подбор — [pricing](../domain/pricing.md).
 - **schedule_templates** — шаблон недели: weekday (0–6, unique), open_time/close_time (null = выходной). Исключений на дату нет.
 - **slots** — слоты: date, hour (0–23), is_closed, close_reason, booking_id (nullable — привязка закрытия к записи). `unique (date, hour)`. Генерация планировщиком — [slot-grid](../domain/slot-grid.md).
-- **bookings** — записи: customer_id, car_id (nullable), slot_id, start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, confirmation_code_hash (верификатор отмены), idempotency_key (uuid, unique — защита от двойного сабмита), снимок radius/car_type/has_runflat/has_tpms, total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status).
-- **booking_codes** — заявки/коды: phone, code_hash, payload (json — снимок заявки), expires_at, used_at. Индекс (phone); просроченные удаляет крон.
+- **bookings** — записи: customer_id, car_id (nullable), slot_id, booking_code_id (nullable — код, подтвердивший запись; верификатор отмены; null — запись по звонку), start_time (время начала внутри слота), status, source (`site`/`admin`), cancel_reason, idempotency_key (uuid, unique — защита от двойного сабмита), снимок radius/car_type/has_runflat/has_tpms, total_price, operator_id (nullable). Индексы: (slot_id), (customer_id), (status), (booking_code_id).
+- **booking_codes** — коды подтверждения: phone, code_hash, used_at. Индекс (phone). Заявка не хранится (передаётся при вводе кода); TTL по created_at + reservation_timeout_min; просроченные неиспользованные удаляет крон.
 - **booking_services** — состав записи: booking_id, service_id, price (на момент записи). `unique (booking_id, service_id)`.
 - **settings** — параметры конфигурации (key/value): `reservation_timeout_min`, `cancel_free_before_h`, `min_lead_time_h`, `booking_horizon_days`, `shop_address`, `shop_phone`.
 
@@ -43,7 +43,7 @@ schedule_templates — источник генерации slots
 3. Снимок в записи: параметры авто и цены фиксируются при создании (ADR 0004).
 4. Перерывы и исключения на дату — не сущности, выражаются закрытием слотов (ФТ-3, ФТ-16).
 5. Счётчик неявок — вычисляется из `bookings (status = no_show)`, колонки нет.
-6. Заявка виджета живёт в `booking_codes`; при подтверждении `code_hash` переносится в запись как верификатор отмены.
+6. Код подтверждения — только верификатор (`booking_codes`: телефон + хэш + одноразовость); заявка не хранится, запись создаётся из выбора клиента при вводе кода и привязывается к коду (`booking_code_id`) — код остаётся верификатором отмены.
 
 ## Реализация и демо-данные (2026-09-08)
 

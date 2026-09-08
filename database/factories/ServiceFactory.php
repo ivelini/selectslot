@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\ServiceCategoryEnum;
-use App\Models\Service;
+use App\Models\Service\Service;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

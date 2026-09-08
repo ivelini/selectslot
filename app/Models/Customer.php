@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Booking\Booking;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

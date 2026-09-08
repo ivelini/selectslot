@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoleEnum;
+use App\Models\Booking\Booking;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;

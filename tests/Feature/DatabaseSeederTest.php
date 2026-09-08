@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\BookingStatusEnum;
-use App\Models\Booking;
-use App\Models\PriceRule;
+use App\Models\Booking\Booking;
 use App\Models\ScheduleTemplate;
-use App\Models\Service;
+use App\Models\Service\PriceRule;
+use App\Models\Service\Service;
 use App\Models\Setting;
 use App\Models\Slot;
 use App\Models\User;

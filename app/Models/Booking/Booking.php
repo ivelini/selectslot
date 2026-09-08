@@ -1,10 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Booking;
 
 use App\Enums\BookingSourceEnum;
 use App\Enums\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
+use App\Models\Car;
+use App\Models\Customer;
+use App\Models\Slot;
+use App\Models\User;
 use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,11 +25,11 @@ use Illuminate\Support\Carbon;
  * @property int $customer_id
  * @property int|null $car_id
  * @property int $slot_id
+ * @property int|null $booking_code_id заявка сайта, подтвердившая запись (верификатор отмены)
  * @property string $start_time
  * @property BookingStatusEnum $status
  * @property BookingSourceEnum $source
  * @property string|null $cancel_reason
- * @property string|null $confirmation_code_hash
  * @property string|null $idempotency_key
  * @property int $radius
  * @property CarTypeEnum $car_type
@@ -37,8 +41,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'customer_id', 'car_id', 'slot_id', 'start_time', 'status', 'source',
-    'cancel_reason', 'confirmation_code_hash', 'idempotency_key',
+    'customer_id', 'car_id', 'slot_id', 'booking_code_id', 'start_time', 'status', 'source',
+    'cancel_reason', 'idempotency_key',
     'radius', 'car_type', 'has_runflat', 'has_tpms', 'total_price', 'operator_id',
 ])]
 class Booking extends Model
@@ -62,6 +66,12 @@ class Booking extends Model
     public function slot(): BelongsTo
     {
         return $this->belongsTo(Slot::class);
+    }
+
+    /** @return BelongsTo<BookingCode, $this> код, подтвердивший заявку (nullable — запись по звонку) */
+    public function bookingCode(): BelongsTo
+    {
+        return $this->belongsTo(BookingCode::class);
     }
 
     /** @return BelongsTo<User, $this> создатель записи из админки (nullable) */

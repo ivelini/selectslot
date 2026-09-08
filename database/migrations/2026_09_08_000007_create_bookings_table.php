@@ -13,11 +13,11 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained()->restrictOnDelete();
             $table->foreignId('car_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('slot_id')->constrained()->restrictOnDelete();
+            $table->foreignId('booking_code_id')->nullable()->constrained()->nullOnDelete()->index(); // заявка сайта, подтвердившая запись (верификатор отмены)
             $table->time('start_time');
             $table->string('status')->default('confirmed');
             $table->string('source')->default('site');
             $table->string('cancel_reason')->nullable();
-            $table->string('confirmation_code_hash')->nullable();
             $table->uuid('idempotency_key')->nullable()->unique();
             // снимок параметров и цены на момент создания (ADR 0004)
             $table->unsignedSmallInteger('radius');

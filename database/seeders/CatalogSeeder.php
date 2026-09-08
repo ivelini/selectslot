@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Enums\CarTypeEnum;
 use App\Enums\ServiceCategoryEnum;
-use App\Models\PriceRule;
-use App\Models\Service;
+use App\Models\Service\PriceRule;
+use App\Models\Service\Service;
 use Illuminate\Database\Seeder;
 
 class CatalogSeeder extends Seeder

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Service;
 
 use App\Enums\ServiceCategoryEnum;
+use App\Models\Booking\BookingService;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
