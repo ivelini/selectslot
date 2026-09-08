@@ -25,6 +25,7 @@
 | 0003 | Часовая сетка без длительностей услуг, постов и лимита на час | Accepted |
 | 0004 | Снимок параметров и цены в записи | Accepted |
 | 0005 | Монолит Laravel: Filament-админка и Livewire-сайт, без внешнего API | Accepted |
+| 0006 | Публичный сайт: страницы на шаг записи, состояние заявки в URL и сессии | Accepted |
 
 ===
 
@@ -194,3 +195,11 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+<!-- setup-llm-wiki:start -->
+## LLM Wiki
+- Индекс знаний проекта: .llm-wiki/wiki/index.md
+- Wiki обновляется только через скил .claude/skills/llm-wiki/SKILL.md (Ingest workflow)
+- Правила синхронизации: .claude/rules/wiki-sync.md, базовые правила: .claude/rules/base.md
+- Команды: /ship-wiki — коммит с обязательным обновлением wiki (+ вопрос про ADR при изменении функционала); /ship — без wiki
+<!-- setup-llm-wiki:end -->
