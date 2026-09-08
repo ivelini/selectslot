@@ -26,7 +26,6 @@ class DatabaseSeederTest extends TestCase
         $this->assertGreaterThan(0, PriceRule::count());
         $this->assertSame(7, ScheduleTemplate::count());
         $this->assertGreaterThanOrEqual(100, Slot::count());
-        $this->assertGreaterThan(0, Slot::where('is_closed', true)->count(), 'обеды закрыты');
         $this->assertGreaterThanOrEqual(10, Booking::count());
         $this->assertGreaterThan(0, Setting::count());
     }

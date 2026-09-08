@@ -23,3 +23,9 @@
 - Updated: Создание записи (заявка не хранится; цена — серверный пересчёт при подтверждении)
 - Updated: Схема БД (booking_codes: phone/code_hash/used_at; bookings.booking_code_id вместо confirmation_code_hash)
 - Updated: Цены (снимок фиксируется при подтверждении, не при запросе кода)
+
+## [2026-09-08] ingest | Публичный сайт: маршруты ветки и шаг «Время»
+- Источник: реализация (routes/web.php, app/Livewire/Booking/, SlotAvailabilityReader, планы)
+- Updated: Архитектура приложения (каркас маршрутов + шаг «Время» реализованы)
+- Updated: Слоты (доступность для показа — SlotAvailabilityReader, whereDate)
+- Updated: Статичный мокап публичного сайта (See Also на Livewire-реализацию)

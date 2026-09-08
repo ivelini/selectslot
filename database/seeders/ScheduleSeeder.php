@@ -13,9 +13,7 @@ class ScheduleSeeder extends Seeder
         foreach (range(0, 6) as $weekday) {
             ScheduleTemplate::updateOrCreate(
                 ['weekday' => $weekday],
-                $weekday === 6
-                    ? ['open_time' => null, 'close_time' => null]
-                    : ['open_time' => '09:00:00', 'close_time' => '19:00:00'],
+                ['open_time' => '09:00:00', 'close_time' => '19:00:00'],
             );
         }
     }

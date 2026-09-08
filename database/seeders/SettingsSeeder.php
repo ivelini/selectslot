@@ -12,7 +12,7 @@ class SettingsSeeder extends Seeder
         'reservation_timeout_min' => '15', // TTL кода подтверждения
         'cancel_free_before_h' => '2', // свободная отмена клиентом до начала
         'min_lead_time_h' => '1', // минимальное время записи до начала
-        'booking_horizon_days' => '30', // горизонт записи
+        'booking_horizon_days' => '60', // горизонт записи
         'shop_address' => 'г. Челябинск, Копейское шоссе, 12А',
         'shop_phone' => '+7 (351) 70-00-319',
     ];
