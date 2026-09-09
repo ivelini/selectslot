@@ -48,13 +48,14 @@ class CreateBookingActionTest extends TestCase
         return $service;
     }
 
-    private function selection(Service $service, string $date = '2026-09-10', int $hour = 11): BookingSelection
+    private function selection(Service $service, string $date = '2026-09-10', int $hour = 11, bool $closeSlot = true): BookingSelection
     {
         return new BookingSelection(
             date: $date,
             hour: $hour,
             params: new VehicleParams(13, CarTypeEnum::Passenger),
             quantities: [$service->id => 4],
+            closeSlot: $closeSlot,
         );
     }
 
@@ -88,7 +89,31 @@ class CreateBookingActionTest extends TestCase
         $this->assertSame(15000, $item->price); // цена за единицу
         $this->assertSame(4, $item->quantity);
 
+        // Бронь с сайта занимает час (ФТ-8/ФТ-16): слот закрыт и привязан к записи
+        $slot = $booking->slot()->firstOrFail();
+        $this->assertTrue($slot->is_closed);
+        $this->assertSame($booking->id, $slot->booking_id);
+
         $this->assertNotNull($code->fresh()->used_at);
+    }
+
+    public function test_keeps_slot_open_when_close_slot_false(): void
+    {
+        $service = $this->serviceWithRule();
+        $slot = $this->openSlot();
+        $code = app(BookingCodeService::class)->issue('79001234567');
+        $code = app(BookingCodeService::class)->verify('79001234567', $code)->code;
+
+        // Запись без закрытия (админка, чекбокс не стоял — ФТ-18): слот остаётся открытым
+        app(CreateBookingAction::class)->handle(
+            $code,
+            $this->draft(),
+            $this->selection($service, closeSlot: false),
+        );
+
+        $this->assertFalse($slot->fresh()->is_closed);
+        $this->assertNull($slot->fresh()->booking_id);
+        $this->assertSame(1, Booking::count());
     }
 
     public function test_fails_when_slot_closed(): void

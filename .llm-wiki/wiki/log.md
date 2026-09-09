@@ -75,3 +75,8 @@
 - Updated: Слоты (GenerateSlotGridAction, SettingKeyEnum)
 - Updated: Публичный сайт (SelectionStepPage, BookingQuery, неймспейсы шагов 2–4)
 - Updated: Схема БД (enum'ы App\Enums\Booking)
+
+## [2026-09-09] ingest | Бронь с сайта занимает час (ФТ v0.16, ADR 0003 уточнено)
+- Источники: ФТ v0.16 (ФТ-6/ФТ-8/ФТ-16), ADR 0003 (уточнение), реализация: BookingSelection::$closeSlot, CreateBookingAction (закрытие слота с привязкой в транзакции), CodeStepPage closeSlot: true
+- Updated: Слоты (модель ёмкости: одна бронь сайта на час, админка пишет в закрытый слот)
+- Updated: Создание записи (броня занимает час — слот закрывается с привязкой)

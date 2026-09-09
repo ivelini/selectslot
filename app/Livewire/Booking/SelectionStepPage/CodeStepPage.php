@@ -130,6 +130,8 @@ class CodeStepPage extends SelectionStepPage
                     hour: $selected['hour'],
                     params: new VehicleParams($this->radius, $carType),
                     quantities: $this->quantities,
+                    // Бронь с сайта занимает час: слот закрывается с привязкой к записи (ФТ-8/ФТ-16)
+                    closeSlot: true,
                 ),
             );
         } catch (SlotUnavailableException) {

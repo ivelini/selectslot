@@ -1,4 +1,8 @@
 # TireSlot — функциональные требования
+> Source: Локальный документ проекта: `documentations/tz/functional-requirements.md` (TireSlot, v0.16)
+> Collected: 2026-09-09
+> Published: 2026-09-09
+
 
 - **Дата:** 2026-09-09
 - **Статус:** Черновик (обсуждение)
