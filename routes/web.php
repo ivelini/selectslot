@@ -3,9 +3,9 @@
 use App\Livewire\Booking\BookingCodeExpiredPage;
 use App\Livewire\Booking\BookingSuccessPage;
 use App\Livewire\Booking\BookingUnavailablePage;
-use App\Livewire\Booking\CodeStepPage;
-use App\Livewire\Booking\DetailsStepPage;
-use App\Livewire\Booking\ServicesStepPage;
+use App\Livewire\Booking\SelectionStepPage\CodeStepPage;
+use App\Livewire\Booking\SelectionStepPage\DetailsStepPage;
+use App\Livewire\Booking\SelectionStepPage\ServicesStepPage;
 use App\Livewire\Booking\TimeStepPage;
 use Illuminate\Support\Facades\Route;
 

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Enums\BookingStatusEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\ScheduleTemplate;

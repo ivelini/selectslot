@@ -1,6 +1,6 @@
 # Цены: прайс-правила, расчёт, снимок в записи
 
-> Sources: TireSlot ФТ v0.14, 2026-09-09; db-schema v0.10, 2026-09-09; ADR 0004, 2026-09-04; ADR 0007, 2026-09-08 (оси уточнены 2026-09-09); реализация PricingCalculator, 2026-09-08/09
+> Sources: TireSlot ФТ v0.14, 2026-09-09; db-schema v0.10, 2026-09-09; ADR 0004, 2026-09-04; ADR 0007, 2026-09-08 (оси уточнены 2026-09-09); реализация CalculatePriceAction, 2026-09-08/09; Рефакторинг доменного слоя, 2026-09-09
 > Raw: [ФТ v0.13](../../raw/domain/2026-09-09-functional-requirements.md); [db-schema v0.9](../../raw/domain/2026-09-09-db-schema.md); [ADR 0004](../../raw/architecture/2026-09-04-0004-snimok-tseny-v-zapisi.md); [Политика прайса реализована](../../raw/domain/2026-09-08-prajs-politika-podbora-realizovana.md); [Реальный прайс: оси и количество](../../raw/domain/2026-09-09-realnyi-prajs-osi-kolichestvo.md)
 
 ## Overview
@@ -21,7 +21,7 @@
 
 RunFlat/TPMS **не параметры**: реальный прайс не дифференцирует по ним цену — это доп. работы (+100 ₽). Параметры клиента: радиус и тип — обязательный выбор, варианта «не знаю» нет (ФТ-4 v0.13); грузовые авто — запись по звонку (ФТ-18). Изменение правил применяется сразу к новым записям.
 
-**Реализация:** `App\Services\PricingCalculator::quote(услуги, VehicleParams, quantities[id=>1..4])` — единый расчёт для показа и подтверждения (НФ-4); строки {service, unit_price, quantity, price=unit×qty}, total. `VehicleParams` = radius + carType (App\ValueObjects); `WheelRadiusEnum` R13–R21; типы сайта — `CarTypeEnum::bookable()`. Демо-сид: полный куб по реальному прайсу — **135 правил** (5 работ × 9 радиусов × 3 типа): снятие/установка лёгк. R12–15 = 150 ₽, R20–21 = 380 ₽, внед. R16–17 = 300 ₽ и т.д.
+**Реализация:** `App\Actions\CalculatePriceAction::handle(услуги, VehicleParams, quantities[id=>1..4])` — единый расчёт для показа и подтверждения (НФ-4); строки {service, unit_price, quantity, price=unit×qty}, total. `VehicleParams` = radius + carType (App\ValueObjects); `WheelRadiusEnum` R13–R21; типы сайта — `CarTypeEnum::bookable()`. Демо-сид: полный куб по реальному прайсу — **135 правил** (5 работ × 9 радиусов × 3 типа): снятие/установка лёгк. R12–15 = 150 ₽, R20–21 = 380 ₽, внед. R16–17 = 300 ₽ и т.д.
 
 ## Снимок в записи (ADR 0004, ФТ-19)
 

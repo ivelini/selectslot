@@ -29,6 +29,16 @@
 | 0007 | Прайс: полный набор правил, отсутствие комбинации — ошибка, а не fallback | Accepted |
 | 0008 | Комплексы услуг — транзиентный выбор: в запись попадает только состав | Accepted |
 | 0009 | Сущность «автомобиль» упразднена: параметры и госномер — снимок записи | Accepted |
+| 0010 | Каталоги доменного слоя: однооперационные действия (`…Action`, `handle`) в `Actions`, службы областей в `Services` | Accepted |
+
+## Слои приложения
+
+- `app/Actions/` — однооперационные действия `{Глагол}{Существительное}Action` c `handle()` (ADR 0010)
+- `app/Services/` — службы областей (коды, доступность) и адаптеры (`LogSmsSender`)
+- `app/Support/` — чистые функции: `Phone`, `Money`, `RussianDate`, `BookingQuery` (query-контракт шага записи)
+- `app/Enums/Settings/SettingKeyEnum` + `Setting::get()` — параметры конфигурации (таблица 7 ФТ)
+- Livewire `Booking/*`: шаги с выбором (2–4) наследуют `SelectionStepPage`; вход из query — только через `BookingQuery`
+- Детали и анти-паттерны — `.claude/rules/coding-style.md`
 
 ===
 

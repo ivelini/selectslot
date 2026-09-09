@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Settings\SettingKeyEnum;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -22,4 +23,10 @@ class Setting extends Model
     protected $primaryKey = 'key';
 
     protected $keyType = 'string';
+
+    /** Актуальное значение параметра; строки нет — дефолт из SettingKeyEnum. */
+    public static function get(SettingKeyEnum $key): int
+    {
+        return (int) (static::find($key->value)?->value ?? $key->default());
+    }
 }

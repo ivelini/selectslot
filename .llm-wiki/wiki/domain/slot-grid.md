@@ -1,7 +1,7 @@
 # Слоты: сетка времени, генерация, закрытие
 
-> Sources: TireSlot ФТ v0.10, 2026-09-04; db-schema v0.6, 2026-09-04; ADR 0001, 2026-09-04; ADR 0003, 2026-09-04; Каркас проекта, 2026-09-08
-> Raw: [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ADR 0001](../../raw/architecture/2026-09-04-0001-hranimaya-setka-slotov.md); [ADR 0003](../../raw/architecture/2026-09-04-0003-chasovaya-setka-bez-postov.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md)
+> Sources: TireSlot ФТ v0.10, 2026-09-04; db-schema v0.6, 2026-09-04; ADR 0001, 2026-09-04; ADR 0003, 2026-09-04; Каркас проекта, 2026-09-08; Рефакторинг доменного слоя, 2026-09-09
+> Raw: [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [db-schema v0.6](../../raw/domain/2026-09-04-db-schema.md); [ADR 0001](../../raw/architecture/2026-09-04-0001-hranimaya-setka-slotov.md); [ADR 0003](../../raw/architecture/2026-09-04-0003-chasovaya-setka-bez-postov.md); [Каркас реализован](../../raw/domain/2026-09-08-karkas-proekta-realizovan.md); [Рефакторинг слоёв и конвенций](../../raw/architecture/2026-09-09-refaktoring-sloev-i-konventsii.md)
 
 ## Overview
 
@@ -10,7 +10,7 @@
 ## Сетка: расписание и генерация
 
 - Шаблон недели — `schedule_templates`: для каждого дня часы работы или выходной. Исключений на дату и перерывов как сущностей нет — отклонения выражаются закрытием слотов.
-- Реализация: `App\Services\SlotGridGenerator` (идемпотентный `insertOrIgnore`, удаляет только открытые пустые строки вне шаблона, даты < today не трогает) вызывается командой `slots:generate` каждые 15 мин (расписание Laravel) и сидом SlotSeeder. Горизонт — `settings.booking_horizon_days` (fallback 30). Сравнения дат — только через `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату).
+- Реализация: `App\Actions\GenerateSlotGridAction` (идемпотентный `insertOrIgnore`, удаляет только открытые пустые строки вне шаблона, даты < today не трогает) вызывается командой `slots:generate` каждые 15 мин (расписание Laravel) и сидом SlotSeeder. Горизонт — `Setting::get(SettingKeyEnum::HorizonDays)` (fallback 30). Сравнения дат — только через `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату).
 - Час стал нерабочим: строка удаляется только если открыта и без записей. Строка с записями или закрытая остаётся; при записях — предупреждение «в затрагиваемом времени N записей». Записи не отменяются и не сдвигаются автоматически — разбирает оператор (обзвон, перенос).
 - Строка, которой нет в сетке (время вне расписания), создаётся по требованию при записи из админки; с чекбоксом закрытия — сразу закрытой.
 
@@ -27,7 +27,7 @@
 
 Сайт на выбранную дату показывает время начала (слоты `is_closed = false`) с фильтрами ФТ-10: не раньше `min_lead_time_h` (1 ч) от момента и не дальше горизонта. Количество записей в слоте доступность не ограничивает: 12:00 и 12:30 — разные записи в одном слоте. Подтверждение записи сериализуется блокировкой строки слота — см. [booking-flow](booking-flow.md). Календарь админки группирует записи по слотам и отдельно отмечает закрытые — см. [booking-statuses](booking-statuses.md) (операторские операции).
 
-**Реализация показа (шаг «Время» сайта):** `App\Services\SlotAvailabilityReader` — единый источник правила доступности (НФ-4): `daysWithAvailability(from, to)` (карта «дата => есть открытый слот»; прошлое всегда недоступно), `daySlots(date)` (строки дня от первого доступного часа: для today — начало ≥ now + min_lead с округлением вверх до часа; за горизонтом/в прошлом — пусто), `isWithinBookingWindow(date)`. Настройки — `Setting::find(key)?->value ?? default`; сравнения дат — только `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату). Поведение страницы и тесты — см. [Публичный сайт: маршруты и шаг «Время»](../frontend/public-booking-pages.md).
+**Реализация показа (шаг «Время» сайта):** `App\Services\SlotAvailabilityReader` — единый источник правила доступности (НФ-4): `daysWithAvailability(from, to)` (карта «дата => есть открытый слот»; прошлое всегда недоступно), `daySlots(date)` (строки дня от первого доступного часа: для today — начало ≥ now + min_lead с округлением вверх до часа; за горизонтом/в прошлом — пусто), `isWithinBookingWindow(date)`. Настройки — `Setting::get(SettingKeyEnum::…)` (MinLeadTimeH/HorizonDays); сравнения дат — только `whereDate` (date-каст Eloquent хранит datetime-строку, sqlite чувствителен к формату). Поведение страницы и тесты — см. [Публичный сайт: маршруты и шаг «Время»](../frontend/public-booking-pages.md).
 
 ## See Also
 

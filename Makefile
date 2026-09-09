@@ -1,7 +1,7 @@
 COMPOSE = docker compose
 EXEC    = $(COMPOSE) exec app
 
-.PHONY: up down fresh seed
+.PHONY: up down fresh seed test
 
 setup: install key-generate
 
@@ -26,6 +26,10 @@ fresh:
 ## Наполнить БД сидерами
 seed:
 	$(EXEC) php artisan db:seed
+
+## Прогнать тесты
+test:
+	$(EXEC) php artisan test
 
 bash:
 	$(EXEC) bash

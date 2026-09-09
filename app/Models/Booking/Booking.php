@@ -2,8 +2,8 @@
 
 namespace App\Models\Booking;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Customer;
 use App\Models\Slot;
@@ -47,6 +47,11 @@ class Booking extends Model
     /** @use HasFactory<BookingFactory> */
     use HasFactory;
 
+    protected static function newFactory(): BookingFactory
+    {
+        return BookingFactory::new();
+    }
+
     /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
@@ -81,6 +86,12 @@ class Booking extends Model
     public function closedSlot(): HasOne
     {
         return $this->hasOne(Slot::class, 'booking_id');
+    }
+
+    /** Запись, созданная этим кодом — для повторного submit уже использованного кода (НФ-1). */
+    public static function forCode(BookingCode $code): ?Booking
+    {
+        return static::query()->where('booking_code_id', $code->id)->first();
     }
 
     protected function casts(): array

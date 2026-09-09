@@ -13,10 +13,11 @@ Commit and push current branch. Обновление wiki (.llm-wiki/) — **о�
 3. Sync with remote if the branch has an upstream (`git rev-parse --abbrev-ref @{u}` succeeds): `git pull --ff-only origin <branch>`. If no upstream yet — skip (first push creates it). If pull fails — stop and report.
 4. Синхронизация wiki и ADR (см. разделы ниже) — выполнить **до** генерации commit message, чтобы wiki/ADR-правки попали в тот же коммит. Перед обновлением wiki — обновить индекс кода: `codegraph sync -q` (актуальный индекс нужен агенту при Ingest).
 5. Based on the changes (including wiki and ADR updates from step 4), generate a commit message in the project's style (look at recent commits for language/format).
-6. Stage all changed files: `git add -A`
-7. Commit with the generated message.
-8. Push: `git push origin <branch>`
-9. Report what was done: branch name, commit message, wiki pages updated, push result.
+6. Run the coding checklists before commit — both: global (`~/.claude/rules/coding-style.md`, раздел «Перед коммитом — проверь») и project (`.claude/rules/coding-style.md`, раздел «Перед коммитом — проектные проверки»). Нашёл нарушение — исправь код до коммита.
+7. Stage all changed files: `git add -A`
+8. Commit with the generated message.
+9. Push: `git push origin <branch>`
+10. Report what was done: branch name, commit message, wiki pages updated, push result.
 
 Important:
 - If there are no changes to commit, stop and tell the user.

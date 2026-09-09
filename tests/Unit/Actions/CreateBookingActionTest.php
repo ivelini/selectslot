@@ -1,9 +1,10 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Unit\Actions;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Actions\CreateBookingAction;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Enums\CodeStatusEnum;
 use App\Exceptions\SlotUnavailableException;
@@ -13,14 +14,13 @@ use App\Models\Service\Service;
 use App\Models\Setting;
 use App\Models\Slot;
 use App\Services\BookingCodeService;
-use App\Services\BookingCreator;
 use App\ValueObjects\BookingSelection;
 use App\ValueObjects\CustomerDraft;
 use App\ValueObjects\VehicleParams;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class BookingCreatorTest extends TestCase
+class CreateBookingActionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -68,14 +68,14 @@ class BookingCreatorTest extends TestCase
         return Slot::create(['date' => $date, 'hour' => $hour]);
     }
 
-    public function test_confirm_creates_booking_with_snapshot(): void
+    public function test_creates_booking_with_snapshot(): void
     {
         $service = $this->serviceWithRule();
         $this->openSlot();
         $code = app(BookingCodeService::class)->issue('79001234567');
         $code = app(BookingCodeService::class)->verify('79001234567', $code)->code;
 
-        $booking = app(BookingCreator::class)->confirm($code, $this->draft(), $this->selection($service));
+        $booking = app(CreateBookingAction::class)->handle($code, $this->draft(), $this->selection($service));
 
         $this->assertSame(BookingStatusEnum::Confirmed, $booking->status);
         $this->assertSame(BookingSourceEnum::Site, $booking->source);
@@ -91,7 +91,7 @@ class BookingCreatorTest extends TestCase
         $this->assertNotNull($code->fresh()->used_at);
     }
 
-    public function test_confirm_fails_when_slot_closed(): void
+    public function test_fails_when_slot_closed(): void
     {
         $service = $this->serviceWithRule();
         $this->openSlot()->update(['is_closed' => true]);
@@ -99,7 +99,7 @@ class BookingCreatorTest extends TestCase
         $code = app(BookingCodeService::class)->verify('79001234567', $code)->code;
 
         try {
-            app(BookingCreator::class)->confirm($code, $this->draft(), $this->selection($service));
+            app(CreateBookingAction::class)->handle($code, $this->draft(), $this->selection($service));
             $this->fail('Ожидалось SlotUnavailableException');
         } catch (SlotUnavailableException) {
             // ожидаемо
@@ -116,12 +116,12 @@ class BookingCreatorTest extends TestCase
         $plain = app(BookingCodeService::class)->issue('79001234567');
         $verification = app(BookingCodeService::class)->verify('79001234567', $plain);
 
-        $first = app(BookingCreator::class)->confirm($verification->code, $this->draft(), $this->selection($service));
+        $first = app(CreateBookingAction::class)->handle($verification->code, $this->draft(), $this->selection($service));
 
         // повторная проверка того же кода — статус Used, запись не дублируется
         $again = app(BookingCodeService::class)->verify('79001234567', $plain);
         $this->assertSame(CodeStatusEnum::Used, $again->status);
-        $this->assertTrue($first->is(app(BookingCreator::class)->bookingForCode($again->code)));
+        $this->assertTrue($first->is(Booking::forCode($again->code)));
         $this->assertSame(1, Booking::count());
     }
 }

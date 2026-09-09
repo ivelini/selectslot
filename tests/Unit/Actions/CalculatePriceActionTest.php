@@ -1,23 +1,23 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Unit\Actions;
 
+use App\Actions\CalculatePriceAction;
 use App\Enums\CarTypeEnum;
 use App\Exceptions\PricingException;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
-use App\Services\PricingCalculator;
 use App\ValueObjects\VehicleParams;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class PricingCalculatorTest extends TestCase
+class CalculatePriceActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function calculator(): PricingCalculator
+    private function action(): CalculatePriceAction
     {
-        return app(PricingCalculator::class);
+        return app(CalculatePriceAction::class);
     }
 
     private function service(string $name, int $basePrice): Service
@@ -40,7 +40,7 @@ class PricingCalculatorTest extends TestCase
         $mounting = $this->service('Снятие и установка колёс', 15000);
         $this->rule($mounting, 13, CarTypeEnum::Passenger, 15000);
 
-        $quote = $this->calculator()->quote(
+        $quote = $this->action()->handle(
             collect([$mounting]),
             new VehicleParams(13, CarTypeEnum::Passenger),
             [$mounting->id => 4],
@@ -59,7 +59,7 @@ class PricingCalculatorTest extends TestCase
         $this->rule($mounting, 13, CarTypeEnum::Passenger, 15000);
         $this->rule($mounting, 13, CarTypeEnum::Crossover, 22000);
 
-        $quote = $this->calculator()->quote(
+        $quote = $this->action()->handle(
             collect([$mounting]),
             new VehicleParams(13, CarTypeEnum::Crossover),
             [$mounting->id => 1],
@@ -72,7 +72,7 @@ class PricingCalculatorTest extends TestCase
     {
         $valve = $this->service('Замена вентиля', 5000);
 
-        $quote = $this->calculator()->quote(
+        $quote = $this->action()->handle(
             collect([$valve]),
             new VehicleParams(16, CarTypeEnum::Passenger),
             [$valve->id => 2],
@@ -92,21 +92,21 @@ class PricingCalculatorTest extends TestCase
 
         $this->expectException(PricingException::class);
 
-        $this->calculator()->quote(
+        $this->action()->handle(
             collect([$mounting]),
             new VehicleParams(20, CarTypeEnum::Passenger),
             [$mounting->id => 4],
         );
     }
 
-    public function test_quote_sums_services_with_quantities(): void
+    public function test_sums_services_with_quantities(): void
     {
         $mounting = $this->service('Снятие и установка колёс', 15000);
         $this->rule($mounting, 13, CarTypeEnum::Passenger, 15000);
         $balancing = $this->service('Балансировка колёс', 14000);
         $this->rule($balancing, 13, CarTypeEnum::Passenger, 14000);
 
-        $quote = $this->calculator()->quote(
+        $quote = $this->action()->handle(
             collect([$mounting, $balancing]),
             new VehicleParams(13, CarTypeEnum::Passenger),
             [$mounting->id => 4, $balancing->id => 2],

@@ -2,17 +2,19 @@
 
 namespace Database\Factories;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\Customer;
 use App\Models\Slot;
+use Illuminate\Database\Eloquent\Factories\Attributes\UseModel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<Booking>
  */
+#[UseModel(Booking::class)]
 class BookingFactory extends Factory
 {
     public function definition(): array

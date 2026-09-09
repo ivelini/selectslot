@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Exceptions\SlotUnavailableException;
 use App\Models\Booking\Booking;
 use App\Models\Booking\BookingCode;
@@ -21,9 +21,9 @@ use Illuminate\Support\Str;
  * для сайта (и, в будущем, каналов админки). Атомарность (НФ-1): блокировка строки
  * слота `SELECT … FOR UPDATE` внутри транзакции исключает гонку «закрытие vs запись».
  */
-class BookingCreator
+class CreateBookingAction
 {
-    public function __construct(private readonly PricingCalculator $pricing) {}
+    public function __construct(private readonly CalculatePriceAction $calculatePrice) {}
 
     /**
      * Создаёт запись из актуального выбора. Код к этому моменту верифицирован (Valid);
@@ -31,7 +31,7 @@ class BookingCreator
      *
      * @throws SlotUnavailableException слот закрыт или строки нет
      */
-    public function confirm(BookingCode $code, CustomerDraft $draft, BookingSelection $selection): Booking
+    public function handle(BookingCode $code, CustomerDraft $draft, BookingSelection $selection): Booking
     {
         return DB::transaction(function () use ($code, $draft, $selection): Booking {
             $slot = Slot::query()
@@ -69,7 +69,7 @@ class BookingCreator
                 ->get();
 
             // Серверный пересчёт из актуального выбора (ФТ-8): сумма клиентом не передаётся
-            $quote = $this->pricing->quote($services, $selection->params, $selection->quantities);
+            $quote = $this->calculatePrice->handle($services, $selection->params, $selection->quantities);
 
             foreach ($quote['lines'] as $line) {
                 BookingService::create([
@@ -87,11 +87,5 @@ class BookingCreator
 
             return $booking;
         });
-    }
-
-    /** Запись, созданная этим кодом (для повторного submit, НФ-1). */
-    public function bookingForCode(BookingCode $code): ?Booking
-    {
-        return Booking::query()->where('booking_code_id', $code->id)->first();
     }
 }

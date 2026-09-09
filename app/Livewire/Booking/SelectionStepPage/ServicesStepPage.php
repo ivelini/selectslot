@@ -1,25 +1,22 @@
 <?php
 
-namespace App\Livewire\Booking;
+namespace App\Livewire\Booking\SelectionStepPage;
 
+use App\Actions\CalculatePriceAction;
 use App\Enums\CarTypeEnum;
 use App\Enums\WheelRadiusEnum;
 use App\Exceptions\PricingException;
 use App\Models\Service\ComplexService;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
-use App\Services\PricingCalculator;
-use App\Services\SlotAvailabilityReader;
+use App\Support\BookingQuery;
 use App\Support\Money;
 use App\Support\RussianDate;
 use App\ValueObjects\VehicleParams;
 use Carbon\CarbonImmutable;
-use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Url;
-use Livewire\Component;
 
 /**
  * Шаг 2 «Услуги» (мокап booking/services.html): услуги с количеством + параметры авто, живой расчёт.
@@ -30,54 +27,8 @@ use Livewire\Component;
  * RunFlat/TPMS — доп. работы, а не параметры: на цену правила не влияют.
  */
 #[Layout('layouts.public')]
-class ServicesStepPage extends Component
+class ServicesStepPage extends SelectionStepPage
 {
-    private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
-
-    private const TIME_PATTERN = '/^(?:[01]\d|2[0-3]):00$/';
-
-    private const DEFAULT_QUANTITY = 4;
-
-    #[Url]
-    public ?string $date = null;
-
-    #[Url]
-    public ?string $time = null;
-
-    /** @var list<int> id выбранных услуг */
-    #[Url(as: 'services')]
-    public array $serviceIds = [];
-
-    /** @var array<int, int> service_id => количество 1–4 */
-    #[Url(as: 'quantities')]
-    public array $quantities = [];
-
-    #[Url]
-    public ?int $radius = null;
-
-    #[Url(as: 'car_type')]
-    public ?string $carType = null;
-
-    public function mount(SlotAvailabilityReader $reader): void
-    {
-        // Шаг осмыслен только с выбираемым временем: мусор/прошлое/закрытый слот — перевыбрать на шаге 1
-        $date = $this->parseDate($this->date);
-        $hour = $this->parseTimeHour($this->time);
-        if ($date === null
-            || $hour === null
-            || ! $reader->isWithinBookingWindow($date)
-            || ! $reader->isSelectableHour($date, $hour)) {
-            $this->redirect(route('booking.time'));
-
-            return;
-        }
-
-        $this->serviceIds = $this->filterActiveServiceIds($this->serviceIds);
-        $this->quantities = $this->normalizeQuantities($this->quantities);
-        $this->radius = $this->radius !== null ? WheelRadiusEnum::tryFrom($this->radius)?->value : null;
-        $this->carType = $this->carTypeValueOrNull($this->carType);
-    }
-
     public function toggleService(int $serviceId): void
     {
         if (! Service::query()->whereKey($serviceId)->where('is_active', true)->exists()) {
@@ -89,7 +40,7 @@ class ServicesStepPage extends Component
             unset($this->quantities[$serviceId]);
         } else {
             $this->serviceIds[] = $serviceId;
-            $this->quantities[$serviceId] = self::DEFAULT_QUANTITY;
+            $this->quantities[$serviceId] = BookingQuery::DEFAULT_QUANTITY;
         }
     }
 
@@ -116,7 +67,7 @@ class ServicesStepPage extends Component
 
         $allPresent = array_diff($serviceIds, $this->serviceIds) === [];
         $allFour = $allPresent && collect($serviceIds)->every(
-            fn (int $id): bool => ($this->quantities[$id] ?? 0) === self::DEFAULT_QUANTITY,
+            fn (int $id): bool => ($this->quantities[$id] ?? 0) === BookingQuery::DEFAULT_QUANTITY,
         );
 
         if ($allFour) {
@@ -130,7 +81,7 @@ class ServicesStepPage extends Component
 
         $this->serviceIds = array_values(array_unique([...$this->serviceIds, ...$serviceIds]));
         foreach ($serviceIds as $serviceId) {
-            $this->quantities[$serviceId] = self::DEFAULT_QUANTITY;
+            $this->quantities[$serviceId] = BookingQuery::DEFAULT_QUANTITY;
         }
     }
 
@@ -140,7 +91,7 @@ class ServicesStepPage extends Component
             return;
         }
 
-        $this->quantities[$serviceId] = min(4, $this->quantities[$serviceId] + 1);
+        $this->quantities[$serviceId] = min(BookingQuery::MAX_QUANTITY, $this->quantities[$serviceId] + 1);
     }
 
     public function decrementQuantity(int $serviceId): void
@@ -149,7 +100,7 @@ class ServicesStepPage extends Component
             return;
         }
 
-        $this->quantities[$serviceId] = max(1, $this->quantities[$serviceId] - 1);
+        $this->quantities[$serviceId] = max(BookingQuery::MIN_QUANTITY, $this->quantities[$serviceId] - 1);
     }
 
     public function selectRadius(int $radius): void
@@ -163,10 +114,10 @@ class ServicesStepPage extends Component
 
     public function selectCarType(string $carType): void
     {
-        $this->carType = $this->carTypeValueOrNull($carType);
+        $this->carType = BookingQuery::carTypeValueOrNull($carType);
     }
 
-    public function render(PricingCalculator $calculator): View
+    public function render(CalculatePriceAction $calculatePrice): View
     {
         $catalog = Service::query()->where('is_active', true)->orderBy('id')->get(['id', 'name', 'base_price']);
         $selected = $catalog->whereIn('id', $this->serviceIds)->values();
@@ -181,7 +132,7 @@ class ServicesStepPage extends Component
         $pricingError = false;
         if ($params !== null) {
             try {
-                $quote = $calculator->quote($catalog, $params, $this->unitQuantities($catalog));
+                $quote = $calculatePrice->handle($catalog, $params, $this->unitQuantities($catalog));
                 foreach ($quote['lines'] as $line) {
                     $unitPrices[$line['service']->id] = $line['unit_price'];
                 }
@@ -263,7 +214,7 @@ class ServicesStepPage extends Component
         $lines = [];
         $total = 0;
         foreach ($selected as $service) {
-            $quantity = $this->quantities[$service->id] ?? self::DEFAULT_QUANTITY;
+            $quantity = $this->quantities[$service->id] ?? BookingQuery::DEFAULT_QUANTITY;
             $linePrice = $unitPrices[$service->id] * $quantity;
 
             $lines[] = [
@@ -290,74 +241,6 @@ class ServicesStepPage extends Component
 
     private function continueUrl(): string
     {
-        return route('booking.details', [
-            'date' => $this->date,
-            'time' => $this->time,
-            'services' => $this->serviceIds,
-            'quantities' => $this->quantities,
-            'radius' => $this->radius,
-            'car_type' => $this->carType,
-        ]);
-    }
-
-    /** @param  list<int>  $ids */
-    private function filterActiveServiceIds(array $ids): array
-    {
-        return Service::query()
-            ->whereIn('id', $ids)
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->pluck('id')
-            ->all();
-    }
-
-    /**
-     * Оставляет количества только за выбранными услугами, приводит к int и границам 1–4,
-     * отсутствующим выбранным услугам проставляет дефолт.
-     *
-     * @param  array<int, int>  $quantities
-     * @return array<int, int>
-     */
-    private function normalizeQuantities(array $quantities): array
-    {
-        $normalized = [];
-        foreach ($this->serviceIds as $serviceId) {
-            $raw = $quantities[$serviceId] ?? self::DEFAULT_QUANTITY;
-            $normalized[$serviceId] = max(1, min(4, (int) $raw));
-        }
-
-        return $normalized;
-    }
-
-    private function carTypeValueOrNull(?string $value): ?string
-    {
-        $carType = CarTypeEnum::tryFrom((string) $value);
-
-        return $carType !== null && in_array($carType, CarTypeEnum::bookable(), true) ? $carType->value : null;
-    }
-
-    /** Строгое чтение «Y-m-d»: мусор и переполнение дат (9999-99-99) отсекаются round-trip'ом. */
-    private function parseDate(?string $value): ?CarbonImmutable
-    {
-        if ($value === null || preg_match(self::DATE_PATTERN, $value) !== 1) {
-            return null;
-        }
-
-        try {
-            $date = CarbonImmutable::parse($value);
-        } catch (InvalidFormatException) {
-            return null;
-        }
-
-        return $date->format('Y-m-d') === $value ? $date : null;
-    }
-
-    private function parseTimeHour(?string $value): ?int
-    {
-        if ($value === null || preg_match(self::TIME_PATTERN, $value) !== 1) {
-            return null;
-        }
-
-        return (int) substr($value, 0, 2);
+        return route('booking.details', $this->selectionQueryParams());
     }
 }

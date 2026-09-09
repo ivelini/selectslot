@@ -3,9 +3,9 @@
 namespace App\Livewire\Booking;
 
 use App\Services\SlotAvailabilityReader;
+use App\Support\BookingQuery;
 use App\Support\RussianDate;
 use Carbon\CarbonImmutable;
-use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -20,10 +20,6 @@ use Livewire\Component;
 #[Layout('layouts.public')]
 class TimeStepPage extends Component
 {
-    private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
-
-    private const TIME_PATTERN = '/^(?:[01]\d|2[0-3]):00$/';
-
     #[Url]
     public ?string $date = null;
 
@@ -44,7 +40,7 @@ class TimeStepPage extends Component
 
     public function mount(SlotAvailabilityReader $reader): void
     {
-        $date = $this->parseDate($this->date);
+        $date = BookingQuery::parseDate($this->date);
         $this->date = $date !== null && $reader->isWithinBookingWindow($date) ? $date->format('Y-m-d') : null;
 
         // Невалидная дата тянет за собой время: время без дня ничего не значит
@@ -70,7 +66,7 @@ class TimeStepPage extends Component
 
     public function selectDate(string $date, SlotAvailabilityReader $reader): void
     {
-        $parsed = $this->parseDate($date);
+        $parsed = BookingQuery::parseDate($date);
         if ($parsed === null || ! $reader->isWithinBookingWindow($parsed)) {
             return;
         }
@@ -88,12 +84,8 @@ class TimeStepPage extends Component
 
     public function selectTime(string $time, SlotAvailabilityReader $reader): void
     {
-        if ($this->date === null || preg_match(self::TIME_PATTERN, $time) !== 1) {
-            return;
-        }
-
-        $hour = (int) substr($time, 0, 2);
-        if (! $reader->isSelectableHour(CarbonImmutable::parse($this->date), $hour)) {
+        $hour = $this->date === null ? null : BookingQuery::parseTimeHour($time);
+        if ($hour === null || ! $reader->isSelectableHour(CarbonImmutable::parse($this->date), $hour)) {
             return;
         }
 
@@ -220,31 +212,11 @@ class TimeStepPage extends Component
         return RussianDate::dayShort(CarbonImmutable::parse($this->date));
     }
 
-    /** Строгое чтение «Y-m-d»: мусор и переполнение дат (9999-99-99) отсекаются round-trip'ом. */
-    private function parseDate(?string $value): ?CarbonImmutable
-    {
-        if ($value === null || preg_match(self::DATE_PATTERN, $value) !== 1) {
-            return null;
-        }
-
-        try {
-            $date = CarbonImmutable::parse($value);
-        } catch (InvalidFormatException) {
-            return null;
-        }
-
-        return $date->format('Y-m-d') === $value ? $date : null;
-    }
-
     private function selectableTimeOrNull(?string $value, CarbonImmutable $date, SlotAvailabilityReader $reader): ?string
     {
-        if ($value === null || preg_match(self::TIME_PATTERN, $value) !== 1) {
-            return null;
-        }
+        $hour = BookingQuery::parseTimeHour($value);
 
-        $hour = (int) substr($value, 0, 2);
-
-        return $reader->isSelectableHour($date, $hour) ? $value : null;
+        return $hour !== null && $reader->isSelectableHour($date, $hour) ? $value : null;
     }
 
     private function visibleMonthDate(): CarbonImmutable

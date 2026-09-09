@@ -4,7 +4,7 @@ namespace Tests\Feature\Livewire\Booking;
 
 use App\Enums\CarTypeEnum;
 use App\Jobs\SendBookingCodeSms;
-use App\Livewire\Booking\DetailsStepPage;
+use App\Livewire\Booking\SelectionStepPage\DetailsStepPage;
 use App\Models\Booking\BookingCode;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;

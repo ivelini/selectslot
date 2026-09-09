@@ -66,3 +66,12 @@
 - Updated: Создание записи (подтверждение реализовано: verify, BookingCreator, экраны с flash)
 - Updated: Публичный сайт (шаг «Код», экраны, пронос выбора через смену времени)
 - Updated: Схема БД (cars удалена, bookings.plate; 12 сущностей)
+
+## [2026-09-09] ingest | Рефакторинг слоёв и конвенций; ADR 0010
+- Источники: ADR 0010 (каталоги Actions/Services), рефакторинг сессии 09.09: CreateBookingAction/CalculatePriceAction/GenerateSlotGridAction (…Action::handle), Booking::forCode, SettingKeyEnum + Setting::get, кулдаун в config, SelectionStepPage (каркас шагов 2–4, подкаталог), BookingQuery, enum'ы в App\Enums\Booking, правила кодирования (глобальные/проектные), чек-лист перед коммитом в /ship
+- Updated: Архитектура приложения (слои ADR 0010)
+- Updated: Создание записи (CreateBookingAction, Booking::forCode, SettingKeyEnum)
+- Updated: Цены (CalculatePriceAction)
+- Updated: Слоты (GenerateSlotGridAction, SettingKeyEnum)
+- Updated: Публичный сайт (SelectionStepPage, BookingQuery, неймспейсы шагов 2–4)
+- Updated: Схема БД (enum'ы App\Enums\Booking)

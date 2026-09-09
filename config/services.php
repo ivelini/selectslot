@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // SMS (код подтверждения): провайдер не выбран (v1), dev-драйвер — LogSmsSender
+    'sms' => [
+        'resend_cooldown_seconds' => (int) env('SMS_RESEND_COOLDOWN_SECONDS', 60),
+    ],
+
 ];

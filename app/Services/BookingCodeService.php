@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CodeStatusEnum;
+use App\Enums\Settings\SettingKeyEnum;
 use App\Models\Booking\BookingCode;
 use App\Models\Setting;
 use App\Support\Phone;
@@ -17,13 +18,6 @@ use InvalidArgumentException;
  */
 class BookingCodeService
 {
-    private const TIMEOUT_SETTING_KEY = 'reservation_timeout_min';
-
-    private const DEFAULT_TIMEOUT_MIN = 15;
-
-    /** Кулдаун повторной отправки SMS, секунды (защита от спама). */
-    public const RESEND_COOLDOWN_SECONDS = 60;
-
     /**
      * Создаёт строку кода и возвращает plain-код для отправки по SMS.
      * Повторный запрос не аннулирует старые активные коды телефона (TTL — крон).
@@ -67,7 +61,7 @@ class BookingCodeService
             return new CodeVerification(CodeStatusEnum::Used, $row);
         }
 
-        if ($row->created_at->lt(now()->subMinutes($this->timeoutMinutes()))) {
+        if ($row->created_at->lt(now()->subMinutes(Setting::get(SettingKeyEnum::ReservationTimeoutMin)))) {
             return new CodeVerification(CodeStatusEnum::Expired, $row);
         }
 
@@ -88,10 +82,5 @@ class BookingCodeService
     private function hash(string $code): string
     {
         return hash('sha256', $code.config('app.key'));
-    }
-
-    private function timeoutMinutes(): int
-    {
-        return (int) (Setting::find(self::TIMEOUT_SETTING_KEY)?->value ?? self::DEFAULT_TIMEOUT_MIN);
     }
 }

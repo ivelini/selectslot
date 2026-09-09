@@ -1,7 +1,7 @@
 # Архитектура приложения: монолит Laravel, каналы записи, границы v1
 
-> Sources: ADR 0005, 2026-09-04; ADR 0006, 2026-09-08; TireSlot ФТ v0.10, 2026-09-04
-> Raw: [ADR 0005](../../raw/architecture/2026-09-04-0005-monolit-filament-livewire.md); [ADR 0006](../../raw/architecture/2026-09-08-0006-stranitsy-na-shag-sostoyanie-v-url.md); [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md)
+> Sources: ADR 0005, 2026-09-04; ADR 0006, 2026-09-08; ADR 0010, 2026-09-09; TireSlot ФТ v0.10, 2026-09-04; Рефакторинг доменного слоя, 2026-09-09
+> Raw: [ADR 0005](../../raw/architecture/2026-09-04-0005-monolit-filament-livewire.md); [ADR 0006](../../raw/architecture/2026-09-08-0006-stranitsy-na-shag-sostoyanie-v-url.md); [ADR 0010](../../raw/architecture/2026-09-09-0010-deystviya-v-actions-sluzhby-oblasti-v-services.md); [ФТ v0.10](../../raw/domain/2026-09-04-functional-requirements.md); [Рефакторинг слоёв и конвенций](../../raw/architecture/2026-09-09-refaktoring-sloev-i-konventsii.md)
 
 ## Overview
 
@@ -9,7 +9,7 @@
 
 ## Каналы и единая логика
 
-- Каналы записи: публичный сайт (Livewire) и админка (запись по звонку). Оба используют **единые доменные Action/Service** — НФ-4: логика записи и закрытия слотов в одной точке приложения, статусная машина — единый класс.
+- Каналы записи: публичный сайт (Livewire) и админка (запись по звонку). Оба используют **единый доменный слой** — НФ-4 (ADR 0010): однооперационные действия `{Глагол}{Существительное}Action` с `handle()` в `app/Actions/` (`CreateBookingAction`, `CalculatePriceAction`, `GenerateSlotGridAction`), службы областей и адаптеры в `app/Services/` (`BookingCodeService`, `SlotAvailabilityReader`, `LogSmsSender`), чистые функции — `app/Support/`. Логика записи и закрытия слотов в одной точке приложения, статусная машина — единый класс.
 - Роли: клиент (гость, идентификация по телефону), оператор (календарь, запись, переносы, отметки, закрытия, корректировка цены), администратор (справочники и расписание; может совпадать с оператором). Роли оператора/админа — `users.role`.
 - Справочники и расписание конфигурируются из админки без деплоя (НФ-3).
 - НФ-2 (целевое время отклика в сезонный пик — октябрь/апрель) влияет на чтение сетки: поддерживается хранением сетки строками ([slot-grid](../domain/slot-grid.md)).
@@ -18,7 +18,7 @@
 
 Каждый шаг потока записи — отдельный full-page Livewire-компонент; URL совпадают со структурой мокапа ([.template/](../frontend/public-site-mockup.md)), переходы — `wire:navigate`. Состояние между шагами: выбор времени и услуг — query-параметры URL (переживает F5 и «назад»); персональные данные — POST с короткоживущим черновиком в сессии. Экраны результата (успех, «время недоступно», «код просрочен», отмена) — редирект с сессионной пометкой: ID записей в публичные URL не попадают, доступ — только через верификацию телефоном и кодом ([booking-flow](../domain/booking-flow.md)). До шага кода БД не пишется — `booking_codes` создаётся в ФТ-7.
 
-**Реализовано:** маршруты ветки (`booking.time` / `booking.services` / `booking.details` / `booking.code`, `Route::livewire`, шаги 2–4 — заглушки) и шаг «Время» целиком — поведение страницы, состояние `#[Url]` date/time, сброс невалидных параметров и читатель сетки `SlotAvailabilityReader` см. [Публичный сайт: маршруты и шаг «Время»](../frontend/public-booking-pages.md).
+**Реализовано:** маршруты ветки (`booking.time` / `booking.services` / `booking.details` / `booking.code`, `Route::livewire`) и шаги 1–4 — поведение страниц, состояние `#[Url]`, читатель сетки `SlotAvailabilityReader` см. [Публичный сайт: маршруты и шаги](../frontend/public-booking-pages.md). Рефакторинг 2026-09-09 (ADR 0010): каталоги Actions/Services, конвенция `…Action::handle()`, параметры конфигурации — `SettingKeyEnum` + `Setting::get` (см. [Слоты](../domain/slot-grid.md), [Создание записи](../domain/booking-flow.md)); шаги с выбором — базовый класс `SelectionStepPage` + `Support\BookingQuery` (см. [Публичный сайт](../frontend/public-booking-pages.md)). Правила кодирования слоёв — `.claude/rules/coding-style.md`.
 
 ## Границы v1
 

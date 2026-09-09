@@ -6,6 +6,7 @@ use App\Enums\ServiceCategoryEnum;
 use App\Models\Booking\BookingService;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -43,6 +44,12 @@ class Service extends Model
     public function complexes(): BelongsToMany
     {
         return $this->belongsToMany(ComplexService::class, 'complex_service_item');
+    }
+
+    /** Активные услуги среди перечисленных id — нормализация устаревшего выбора шага. */
+    public function scopeActiveByIds(Builder $query, array $ids): Builder
+    {
+        return $query->whereIn('id', $ids)->where('is_active', true);
     }
 
     protected function casts(): array

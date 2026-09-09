@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions;
 
+use App\Enums\Settings\SettingKeyEnum;
 use App\Models\ScheduleTemplate;
 use App\Models\Setting;
 use App\Models\Slot;
@@ -13,16 +14,12 @@ use Carbon\CarbonImmutable;
  * Идемпотентна: существующие строки не трогает (сохраняет is_closed/close_reason/booking_id),
  * удаляет только открытые пустые строки вне актуального шаблона. Прошлое не пересматривает.
  */
-class SlotGridGenerator
+class GenerateSlotGridAction
 {
-    private const HORIZON_SETTING_KEY = 'booking_horizon_days';
-
-    private const DEFAULT_HORIZON_DAYS = 30;
-
-    public function generate(): void
+    public function handle(): void
     {
         $today = CarbonImmutable::today();
-        $horizonDays = $this->horizonDays();
+        $horizonDays = Setting::get(SettingKeyEnum::HorizonDays);
         $workingHoursByWeekday = $this->workingHoursByWeekday();
 
         $expected = [];
@@ -36,11 +33,6 @@ class SlotGridGenerator
 
         $this->upsertSlots($expected);
         $this->removeOutOfScheduleSlots($today->format('Y-m-d'), $expected);
-    }
-
-    private function horizonDays(): int
-    {
-        return (int) (Setting::find(self::HORIZON_SETTING_KEY)?->value ?? self::DEFAULT_HORIZON_DAYS);
     }
 
     /** @return array<int, list<int>> weekday (0 пн – 6 вс) => рабочие часы */

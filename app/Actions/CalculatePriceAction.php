@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Actions;
 
 use App\Exceptions\PricingException;
 use App\Models\Service\PriceRule;
@@ -21,14 +21,14 @@ use InvalidArgumentException;
  * - правила есть, комбинации нет — PricingException (потерянное правило —
  *   баг данных; молчаливая база дала бы неверную цену).
  */
-class PricingCalculator
+class CalculatePriceAction
 {
     /**
      * @param  Collection<int, Service>  $services
      * @param  array<int, int>  $quantities  service_id => количество 1–4
      * @return array{lines: list<array{service: Service, unit_price: int, quantity: int, price: int}>, total: int} цены в копейках
      */
-    public function quote(Collection $services, VehicleParams $params, array $quantities): array
+    public function handle(Collection $services, VehicleParams $params, array $quantities): array
     {
         $rulesByService = $this->rulesByService($services);
 

@@ -2,15 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Actions\CalculatePriceAction;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\Booking\BookingService;
 use App\Models\Customer;
 use App\Models\Service\Service;
 use App\Models\Slot;
-use App\Services\PricingCalculator;
 use App\ValueObjects\VehicleParams;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Seeder;
@@ -166,8 +166,8 @@ class DemoBookingSeeder extends Seeder
         $quantity = $source === BookingSourceEnum::Site ? 4 : rand(1, 4);
         $quantities = collect($services)->mapWithKeys(fn (Service $service): array => [$service->id => $quantity])->all();
 
-        // Расчёт — единый PricingCalculator (НФ-4), как на сайте и при подтверждении
-        $quote = app(PricingCalculator::class)->quote(
+        // Расчёт — единый CalculatePriceAction (НФ-4), как на сайте и при подтверждении
+        $quote = app(CalculatePriceAction::class)->handle(
             collect($services),
             new VehicleParams($profile['radius'], $profile['car_type']),
             $quantities,

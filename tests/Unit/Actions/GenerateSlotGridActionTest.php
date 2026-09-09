@@ -1,21 +1,21 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Unit\Actions;
 
-use App\Enums\BookingSourceEnum;
-use App\Enums\BookingStatusEnum;
+use App\Actions\GenerateSlotGridAction;
+use App\Enums\Booking\BookingSourceEnum;
+use App\Enums\Booking\BookingStatusEnum;
 use App\Enums\CarTypeEnum;
 use App\Models\Booking\Booking;
 use App\Models\Customer;
 use App\Models\ScheduleTemplate;
 use App\Models\Setting;
 use App\Models\Slot;
-use App\Services\SlotGridGenerator;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class SlotGridGeneratorTest extends TestCase
+class GenerateSlotGridActionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -56,7 +56,7 @@ class SlotGridGeneratorTest extends TestCase
     {
         $this->seedWeeklySchedule();
 
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $expectedTotal = $this->workingDaysInPeriod(30) * 10; // часы 09..18
         $this->assertSame($expectedTotal, Slot::count());
@@ -70,13 +70,13 @@ class SlotGridGeneratorTest extends TestCase
     public function test_second_run_is_idempotent(): void
     {
         $this->seedWeeklySchedule();
-        $generator = app(SlotGridGenerator::class);
+        $generator = app(GenerateSlotGridAction::class);
 
-        $generator->generate();
+        $generator->handle();
         $firstCount = Slot::count();
         $closedAfterFirst = Slot::where('is_closed', true)->count();
 
-        $generator->generate();
+        $generator->handle();
 
         $this->assertSame($firstCount, Slot::count());
         $this->assertSame($closedAfterFirst, Slot::where('is_closed', true)->count());
@@ -85,13 +85,13 @@ class SlotGridGeneratorTest extends TestCase
     public function test_keeps_closed_slots_on_regeneration(): void
     {
         $this->seedWeeklySchedule();
-        $generator = app(SlotGridGenerator::class);
-        $generator->generate();
+        $generator = app(GenerateSlotGridAction::class);
+        $generator->handle();
 
         $slot = Slot::where('date', $this->today->toDateString())->where('hour', 14)->firstOrFail();
         $slot->update(['is_closed' => true, 'close_reason' => 'обед']);
 
-        $generator->generate();
+        $generator->handle();
 
         $slot->refresh();
         $this->assertTrue($slot->is_closed);
@@ -101,7 +101,7 @@ class SlotGridGeneratorTest extends TestCase
     public function test_keeps_out_of_schedule_slot_with_booking(): void
     {
         $this->seedWeeklySchedule();
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         // строка 20:00 вне шаблона (шаблон до 19:00), созданная записью из админки
         $slot = Slot::create(['date' => $this->today->toDateString(), 'hour' => 20]);
@@ -119,7 +119,7 @@ class SlotGridGeneratorTest extends TestCase
             'total_price' => 10000,
         ]);
 
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $this->assertDatabaseHas('slots', ['id' => $slot->id, 'hour' => 20]);
     }
@@ -127,11 +127,11 @@ class SlotGridGeneratorTest extends TestCase
     public function test_removes_empty_open_slot_outside_schedule(): void
     {
         $this->seedWeeklySchedule();
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $slot = Slot::create(['date' => $this->today->toDateString(), 'hour' => 20]);
 
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $this->assertDatabaseMissing('slots', ['id' => $slot->id]);
     }
@@ -139,11 +139,11 @@ class SlotGridGeneratorTest extends TestCase
     public function test_does_not_touch_past_slots(): void
     {
         $this->seedWeeklySchedule();
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $past = Slot::create(['date' => $this->today->subDay()->toDateString(), 'hour' => 20]);
 
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $this->assertDatabaseHas('slots', ['id' => $past->id]);
     }
@@ -153,7 +153,7 @@ class SlotGridGeneratorTest extends TestCase
         $this->seedWeeklySchedule();
         Setting::where('key', 'booking_horizon_days')->update(['value' => '7']);
 
-        app(SlotGridGenerator::class)->generate();
+        app(GenerateSlotGridAction::class)->handle();
 
         $this->assertNull(Slot::where('date', $this->today->addDays(7)->toDateString())->first());
         $expectedTotal = $this->workingDaysInPeriod(7) * 10;

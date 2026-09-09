@@ -1,27 +1,23 @@
 <?php
 
-namespace App\Livewire\Booking;
+namespace App\Livewire\Booking\SelectionStepPage;
 
+use App\Actions\CreateBookingAction;
 use App\Enums\CarTypeEnum;
 use App\Enums\CodeStatusEnum;
-use App\Enums\WheelRadiusEnum;
 use App\Exceptions\SlotUnavailableException;
 use App\Jobs\SendBookingCodeSms;
+use App\Models\Booking\Booking;
 use App\Models\Booking\BookingCode;
-use App\Models\Service\Service;
 use App\Services\BookingCodeService;
-use App\Services\BookingCreator;
 use App\Services\SlotAvailabilityReader;
 use App\Support\RussianDate;
 use App\ValueObjects\BookingSelection;
 use App\ValueObjects\CustomerDraft;
 use App\ValueObjects\VehicleParams;
 use Carbon\CarbonImmutable;
-use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Url;
-use Livewire\Component;
 
 /**
  * Шаг 4 «Подтверждение» (мокап booking/code.html): ввод SMS-кода → создание записи (ФТ-8).
@@ -30,64 +26,22 @@ use Livewire\Component;
  * unavailable (слот занят), code-expired (TTL). Повторная отправка кода — с кулдауном.
  */
 #[Layout('layouts.public')]
-class CodeStepPage extends Component
+class CodeStepPage extends SelectionStepPage
 {
-    private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
-
-    private const TIME_PATTERN = '/^(?:[01]\d|2[0-3]):00$/';
-
-    #[Url]
-    public ?string $date = null;
-
-    #[Url]
-    public ?string $time = null;
-
-    /** @var list<int> */
-    #[Url(as: 'services')]
-    public array $serviceIds = [];
-
-    /** @var array<int, int> */
-    #[Url(as: 'quantities')]
-    public array $quantities = [];
-
-    #[Url]
-    public ?int $radius = null;
-
-    #[Url(as: 'car_type')]
-    public ?string $carType = null;
-
     /** @var list<string> четыре цифры кода */
     public array $digits = ['', '', '', ''];
 
     public string $notice = '';
 
-    public function mount(SlotAvailabilityReader $reader): void
+    /** Код отправляли на телефон из черновика: без черновика шаг «Код» бессмыслен. */
+    protected function afterMount(): void
     {
-        $date = $this->parseDate($this->date);
-        $hour = $this->parseTimeHour($this->time);
-        if ($date === null
-            || $hour === null
-            || ! $reader->isWithinBookingWindow($date)
-            || ! $reader->isSelectableHour($date, $hour)) {
-            $this->redirect(route('booking.time'));
-
-            return;
-        }
-
-        $this->serviceIds = $this->filterActiveServiceIds($this->serviceIds);
-        $this->quantities = $this->normalizeQuantities($this->quantities);
-        $this->radius = $this->radius !== null ? WheelRadiusEnum::tryFrom($this->radius)?->value : null;
-        $this->carType = $this->carTypeValueOrNull($this->carType);
-
-        // Код отправляли на телефон из черновика: без черновика шаг «Код» бессмыслен
         if (! is_array(session('booking_draft'))) {
             $this->redirect($this->detailsUrl());
-
-            return;
         }
     }
 
-    public function submit(BookingCodeService $codes, BookingCreator $creator): void
+    public function submit(BookingCodeService $codes, CreateBookingAction $createBooking, SlotAvailabilityReader $reader): void
     {
         $draft = session('booking_draft');
         $phone = is_array($draft) ? (string) ($draft['phone'] ?? '') : '';
@@ -104,8 +58,8 @@ class CodeStepPage extends Component
         match ($verification->status) {
             CodeStatusEnum::Invalid => $this->addError('code', 'Неверный код — проверьте SMS'),
             CodeStatusEnum::Expired => $this->redirectToExpired(),
-            CodeStatusEnum::Used => $this->redirectToExisting($verification->code, $creator),
-            CodeStatusEnum::Valid => $this->confirmBooking($verification->code, $creator, $draft),
+            CodeStatusEnum::Used => $this->redirectToExisting($verification->code),
+            CodeStatusEnum::Valid => $this->confirmBooking($verification->code, $createBooking, $reader),
         };
     }
 
@@ -118,7 +72,7 @@ class CodeStepPage extends Component
         $lastSentAt = $codes->lastIssuedAt($phone);
         $cooldownLeft = $lastSentAt === null
             ? 0
-            : (int) $lastSentAt->diffInSeconds(now()) - BookingCodeService::RESEND_COOLDOWN_SECONDS;
+            : (int) $lastSentAt->diffInSeconds(now()) - config('services.sms.resend_cooldown_seconds');
 
         if ($cooldownLeft < 0) {
             $this->addError('resend', 'Код уже отправлен. Повторите через '.abs($cooldownLeft).' секунд');
@@ -146,8 +100,9 @@ class CodeStepPage extends Component
         ]);
     }
 
-    private function confirmBooking(?BookingCode $code, BookingCreator $creator, mixed $draft): void
+    private function confirmBooking(?BookingCode $code, CreateBookingAction $createBooking, SlotAvailabilityReader $reader): void
     {
+        $draft = session('booking_draft');
         if ($code === null || ! is_array($draft)) {
             $this->addError('code', 'Неверный код — проверьте SMS');
 
@@ -155,16 +110,15 @@ class CodeStepPage extends Component
         }
 
         $carType = CarTypeEnum::tryFrom((string) $this->carType);
-        $date = $this->parseDate($this->date);
-        $hour = $this->parseTimeHour($this->time);
-        if ($date === null || $hour === null || $carType === null || $this->radius === null) {
+        $selected = $this->selectionDateTime();
+        if ($selected === null || $carType === null || $this->radius === null) {
             $this->addError('code', 'Выбор устарел — вернитесь к выбору услуг');
 
             return;
         }
 
         try {
-            $booking = $creator->confirm(
+            $booking = $createBooking->handle(
                 $code,
                 new CustomerDraft(
                     (string) ($draft['name'] ?? ''),
@@ -172,8 +126,8 @@ class CodeStepPage extends Component
                     isset($draft['plate']) && $draft['plate'] !== '' ? (string) $draft['plate'] : null,
                 ),
                 new BookingSelection(
-                    date: $date->toDateString(),
-                    hour: $hour,
+                    date: $selected['date']->toDateString(),
+                    hour: $selected['hour'],
                     params: new VehicleParams($this->radius, $carType),
                     quantities: $this->quantities,
                 ),
@@ -196,10 +150,10 @@ class CodeStepPage extends Component
         $this->redirect(route('booking.code-expired'));
     }
 
-    private function redirectToExisting(?BookingCode $code, BookingCreator $creator): void
+    private function redirectToExisting(?BookingCode $code): void
     {
         // Повторный submit уже использованного кода: запись создана ранее (НФ-1)
-        $booking = $code !== null ? $creator->bookingForCode($code) : null;
+        $booking = $code !== null ? Booking::forCode($code) : null;
         if ($booking === null) {
             $this->addError('code', 'Неверный код — проверьте SMS');
 
@@ -218,7 +172,7 @@ class CodeStepPage extends Component
             return 0;
         }
 
-        return max(0, BookingCodeService::RESEND_COOLDOWN_SECONDS - (int) $lastSentAt->diffInSeconds(now()));
+        return max(0, config('services.sms.resend_cooldown_seconds') - (int) $lastSentAt->diffInSeconds(now()));
     }
 
     private function formatPhone(string $canonical): string
@@ -228,14 +182,7 @@ class CodeStepPage extends Component
 
     private function detailsUrl(): string
     {
-        return route('booking.details', [
-            'date' => $this->date,
-            'time' => $this->time,
-            'services' => $this->serviceIds,
-            'quantities' => $this->quantities,
-            'radius' => $this->radius,
-            'car_type' => $this->carType,
-        ]);
+        return route('booking.details', $this->selectionQueryParams());
     }
 
     private function dateLabel(): string
@@ -243,62 +190,5 @@ class CodeStepPage extends Component
         $date = CarbonImmutable::parse($this->date);
 
         return RussianDate::dayShort($date).', '.$this->time;
-    }
-
-    /** @param  list<int>  $ids */
-    private function filterActiveServiceIds(array $ids): array
-    {
-        return Service::query()
-            ->whereIn('id', $ids)
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->pluck('id')
-            ->all();
-    }
-
-    /**
-     * @param  array<int, int>  $quantities
-     * @return array<int, int>
-     */
-    private function normalizeQuantities(array $quantities): array
-    {
-        $normalized = [];
-        foreach ($this->serviceIds as $serviceId) {
-            $raw = $quantities[$serviceId] ?? 4;
-            $normalized[$serviceId] = max(1, min(4, (int) $raw));
-        }
-
-        return $normalized;
-    }
-
-    private function carTypeValueOrNull(?string $value): ?string
-    {
-        $carType = CarTypeEnum::tryFrom((string) $value);
-
-        return $carType !== null && in_array($carType, CarTypeEnum::bookable(), true) ? $carType->value : null;
-    }
-
-    private function parseDate(?string $value): ?CarbonImmutable
-    {
-        if ($value === null || preg_match(self::DATE_PATTERN, $value) !== 1) {
-            return null;
-        }
-
-        try {
-            $date = CarbonImmutable::parse($value);
-        } catch (InvalidFormatException) {
-            return null;
-        }
-
-        return $date->format('Y-m-d') === $value ? $date : null;
-    }
-
-    private function parseTimeHour(?string $value): ?int
-    {
-        if ($value === null || preg_match(self::TIME_PATTERN, $value) !== 1) {
-            return null;
-        }
-
-        return (int) substr($value, 0, 2);
     }
 }

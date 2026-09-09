@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Settings\SettingKeyEnum;
 use App\Models\Setting;
 use App\Models\Slot;
 use Carbon\CarbonImmutable;
@@ -18,14 +19,6 @@ use Illuminate\Support\Collection;
  */
 class SlotAvailabilityReader
 {
-    private const MIN_LEAD_SETTING_KEY = 'min_lead_time_h';
-
-    private const HORIZON_SETTING_KEY = 'booking_horizon_days';
-
-    private const DEFAULT_MIN_LEAD_HOURS = 1;
-
-    private const DEFAULT_HORIZON_DAYS = 30;
-
     /**
      * Карта «Y-m-d => есть ли доступный слот» для всех дат диапазона [from..to] включительно.
      * Прошлые и выходящие за горизонт даты в карте — false: календарь не даёт по ним клик.
@@ -68,13 +61,13 @@ class SlotAvailabilityReader
     {
         $today = CarbonImmutable::today();
 
-        return $date->gte($today) && $date->lte($today->addDays($this->horizonDays() - 1));
+        return $date->gte($today) && $date->lte($today->addDays(Setting::get(SettingKeyEnum::HorizonDays) - 1));
     }
 
     public function daySlots(CarbonImmutable $date): array
     {
         $today = CarbonImmutable::today();
-        $horizonLastDate = $today->addDays($this->horizonDays() - 1);
+        $horizonLastDate = $today->addDays(Setting::get(SettingKeyEnum::HorizonDays) - 1);
 
         if ($date->lt($today) || $date->gt($horizonLastDate)) {
             return [];
@@ -124,18 +117,8 @@ class SlotAvailabilityReader
      */
     private function firstSelectableHour(): int
     {
-        $edge = CarbonImmutable::now()->addHours($this->minLeadHours());
+        $edge = CarbonImmutable::now()->addHours(Setting::get(SettingKeyEnum::MinLeadTimeH));
 
         return $edge->startOfHour()->equalTo($edge) ? $edge->hour : $edge->hour + 1;
-    }
-
-    private function minLeadHours(): int
-    {
-        return (int) (Setting::find(self::MIN_LEAD_SETTING_KEY)?->value ?? self::DEFAULT_MIN_LEAD_HOURS);
-    }
-
-    private function horizonDays(): int
-    {
-        return (int) (Setting::find(self::HORIZON_SETTING_KEY)?->value ?? self::DEFAULT_HORIZON_DAYS);
     }
 }

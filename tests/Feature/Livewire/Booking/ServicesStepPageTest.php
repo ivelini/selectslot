@@ -3,7 +3,7 @@
 namespace Tests\Feature\Livewire\Booking;
 
 use App\Enums\CarTypeEnum;
-use App\Livewire\Booking\ServicesStepPage;
+use App\Livewire\Booking\SelectionStepPage\ServicesStepPage;
 use App\Models\Service\ComplexService;
 use App\Models\Service\PriceRule;
 use App\Models\Service\Service;
