@@ -59,4 +59,26 @@ class BookingCodeServiceTest extends TestCase
         $this->travelTo('2026-09-09 10:16:00'); // +16 мин > TTL 15
         $this->assertSame(CodeStatusEnum::Expired, $service->verify('79001234567', $code)->status);
     }
+
+    public function test_verify_uses_latest_row_when_code_repeats(): void
+    {
+        // Стаб-режим (config sms.stub): issue выдаёт один и тот же код — в таблице несколько
+        // строк с одинаковым hash. Проверяется свежайшая выдача: использованная старая
+        // не должна давать Used при наличии новой активной.
+        $hash = hash('sha256', '1234'.config('app.key'));
+        BookingCode::create(['phone' => '79001234567', 'code_hash' => $hash, 'used_at' => now()]);
+        BookingCode::create(['phone' => '79001234567', 'code_hash' => $hash]);
+
+        $this->assertSame(
+            CodeStatusEnum::Valid,
+            app(BookingCodeService::class)->verify('79001234567', '1234')->status,
+        );
+
+        // новой выдачи нет — повторный ввод использованного кода остаётся Used (НФ-1)
+        BookingCode::query()->whereNull('used_at')->update(['used_at' => now()]);
+        $this->assertSame(
+            CodeStatusEnum::Used,
+            app(BookingCodeService::class)->verify('79001234567', '1234')->status,
+        );
+    }
 }

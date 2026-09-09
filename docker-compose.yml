@@ -43,7 +43,7 @@ services:
 
   postgres:
     image: postgres:17-alpine
-    container_name: imsd-db
+    container_name: ${DOCKER_APP_NAME:-project}-db
     restart: unless-stopped
     ports:
       - "${PGPORT:-57435}:5432"

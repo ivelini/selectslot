@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Dev-драйвер SMS: сообщение пишется в лог (код виден при ручной проверке).
- * Прод-провайдер — отдельная реализация контракта по config('services.sms.driver').
+ * Прод-провайдер — отдельная реализация контракта, подключается по config('sms.provider').
  */
 class LogSmsSender implements SmsSender
 {

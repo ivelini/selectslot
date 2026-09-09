@@ -36,7 +36,7 @@
 
 - **Вход (каркас):** время обязано оставаться выбираемым (`SlotAvailabilityReader`), иначе → шаг 1; выбор-услуги чистится (для сайдбара-итога через `CalculatePriceAction`); возврат с шага «Код» — черновик предзаполняет форму (`afterMount`).
 - **submit (ФТ-7):** валидация (имя; телефон по `App\Support\Phone` — канон «7XXXXXXXXXX»; госномер опц.) → слот всё ещё выбираем, иначе «Время недоступно» и код не шлётся → `booking_draft` {name, phone, plate} в сессию → `BookingCodeService::issue` (код 4 цифры, code_hash = sha256(код + app.key), plaintext не хранится) → `SendBookingCodeSms::dispatch` (Job, очередь+ретраи, ФТ-24) → redirect `/booking/code` с query.
-- **SMS:** контракт `App\Contracts\SmsSender`, dev-`LogSmsSender` (код в лог) по `services.sms.driver`; провайдер — отдельная реализация.
+- **SMS:** контракт `App\Contracts\SmsSender`, dev-`LogSmsSender` (код в лог); провайдер — отдельная реализация по `config('sms.provider')`. Технические настройки SMS — `config/sms.php`: стаб-код для ручных тестов (`sms.stub.code`, один и тот же код на все выдачи — `BookingCodeService::verify` проверяет свежайшую строку телефона с этим кодом), кулдаун повторной отправки (`sms.resend_cooldown_seconds`).
 - **Возврат с шага «Код»:** черновик предзаполняет форму. Очистка черновика и создание Customer/записи — шаг 4.
 
 ## Шаг «Код» и экраны результата

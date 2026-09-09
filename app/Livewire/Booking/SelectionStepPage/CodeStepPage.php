@@ -72,7 +72,7 @@ class CodeStepPage extends SelectionStepPage
         $lastSentAt = $codes->lastIssuedAt($phone);
         $cooldownLeft = $lastSentAt === null
             ? 0
-            : (int) $lastSentAt->diffInSeconds(now()) - config('services.sms.resend_cooldown_seconds');
+            : (int) $lastSentAt->diffInSeconds(now()) - config('sms.resend_cooldown_seconds');
 
         if ($cooldownLeft < 0) {
             $this->addError('resend', 'Код уже отправлен. Повторите через '.abs($cooldownLeft).' секунд');
@@ -174,7 +174,7 @@ class CodeStepPage extends SelectionStepPage
             return 0;
         }
 
-        return max(0, config('services.sms.resend_cooldown_seconds') - (int) $lastSentAt->diffInSeconds(now()));
+        return max(0, config('sms.resend_cooldown_seconds') - (int) $lastSentAt->diffInSeconds(now()));
     }
 
     private function formatPhone(string $canonical): string

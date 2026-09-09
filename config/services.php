@@ -34,10 +34,4 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
-    // SMS (код подтверждения): провайдер не выбран (v1), dev-драйвер — LogSmsSender
-    'sms' => [
-        'resend_cooldown_seconds' => (int) env('SMS_RESEND_COOLDOWN_SECONDS', 60),
-    ],
-
 ];

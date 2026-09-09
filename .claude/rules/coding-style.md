@@ -15,7 +15,7 @@
 ## Параметры конфигурации
 
 - Бизнес-параметр (таблица 7 ФТ: срок кода, мин. время, горизонт, порог отмены) читай только через `Setting::get(SettingKeyEnum::…)`. Строку-ключ или дефолт в классе не объявляй — добавь кейс в `app/Enums/Settings/SettingKeyEnum.php`.
-- Техническое значение (не параметр домена, из админки не правится: кулдаун SMS) — в `config/services.php` (`services.sms.resend_cooldown_seconds`), не константой класса и не в `settings`.
+- Техническое значение (не параметр домена, из админки не правится: кулдаун SMS, стаб-код для ручных тестов) — в `config/sms.php` (`sms.resend_cooldown_seconds`, `sms.stub.code`), не константой класса и не в `settings`.
 
 ## Публичный сайт (Livewire `app/Livewire/Booking/`)
 

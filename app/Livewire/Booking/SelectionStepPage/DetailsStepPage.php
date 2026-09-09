@@ -51,12 +51,7 @@ class DetailsStepPage extends SelectionStepPage
         $phone = Phone::normalize($this->phone);
         $plate = $this->plate !== null ? trim($this->plate) : null;
 
-        if ($name === '') {
-            $this->addError('name', 'Укажите имя');
-        }
-        if ($phone === null) {
-            $this->addError('phone', 'Укажите корректный телефон');
-        }
+        $this->checkErrors($name, $phone);
         if ($this->getErrorBag()->isNotEmpty()) {
             return;
         }
@@ -78,6 +73,18 @@ class DetailsStepPage extends SelectionStepPage
         SendBookingCodeSms::dispatch($phone, $code);
 
         $this->redirect(route('booking.code', $this->selectionQueryParams()));
+    }
+
+    private function checkErrors(string $name, ?string $phone): void
+    {
+        $this->resetErrorBag();
+
+        if ($name === '') {
+            $this->addError('name', 'Укажите имя');
+        }
+        if ($phone === null) {
+            $this->addError('phone', 'Укажите корректный телефон');
+        }
     }
 
     public function render(CalculatePriceAction $calculatePrice): View

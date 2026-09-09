@@ -29,7 +29,7 @@ class BookingCodeService
             throw new InvalidArgumentException("Невалидный телефон: {$phone}");
         }
 
-        $code = (string) random_int(1000, 9999);
+        $code = $this->buildCode();
 
         BookingCode::create([
             'phone' => $canonical,
@@ -37,6 +37,15 @@ class BookingCodeService
         ]);
 
         return $code;
+    }
+
+    private function buildCode(): int
+    {
+        if (config('sms.stub')) {
+            return config('sms.stub.code');
+        }
+
+        return (string) random_int(1000, 9999);
     }
 
     /**
@@ -51,6 +60,9 @@ class BookingCodeService
             : BookingCode::query()
                 ->where('phone', $canonical)
                 ->where('code_hash', $this->hash($code))
+                // Свежайшая выдача с этим кодом: при совпадающих hash (стаб-код для ручных тестов)
+                // first() брал старую использованную строку и повторная бронь «тихо» уходила в Used
+                ->latest('id')
                 ->first();
 
         if ($row === null) {

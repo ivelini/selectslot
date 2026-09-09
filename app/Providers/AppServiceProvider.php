@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // SMS: реализация по config('services.sms.driver') — dev-драйвер пишет в лог (см. integrations/)
+        // SMS: dev-драйвер пишет в лог; прод-провайдер — по config('sms.provider') (см. integrations/)
         $this->app->bind(SmsSender::class, fn () => app(LogSmsSender::class));
     }
 
